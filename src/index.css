@@ -1,0 +1,196 @@
+/* ═══════════════════════════════════════════════════════════
+   LicitaMatch — Design System Global
+   Paleta B2B SaaS Moderna | Inter + Plus Jakarta Sans
+═══════════════════════════════════════════════════════════ */
+
+/* ── Google Fonts fallback ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── CSS Custom Properties — Design Tokens ── */
+:root {
+  /* Brand Colors */
+  --color-primary:        #00555A;
+  --color-primary-light:  #006E74;
+  --color-primary-dark:   #003D42;
+  --color-primary-50:     #E6F4F5;
+  --color-primary-100:    #B3DDE0;
+
+  --color-secondary:      #9CAF88;
+  --color-secondary-light:#B4C4A2;
+  --color-secondary-dark: #7A9063;
+
+  --color-success:        #06D6A0;
+  --color-success-light:  #34E0B4;
+  --color-success-dark:   #04A87D;
+
+  --color-warning:        #ED680E;
+  --color-warning-light:  #F28240;
+  --color-warning-dark:   #C4530A;
+
+  --color-danger:         #EE6C4D;
+  --color-danger-light:   #F28E74;
+  --color-danger-dark:    #CC4C2F;
+
+  /* Neutrals */
+  --color-bg:             #F9F5F0;
+  --color-bg-card:        #FFFFFF;
+  --color-bg-sidebar:     #161B33;
+  --color-text:           #161B33;
+  --color-text-muted:     #6B7280;
+  --color-text-light:     #9CA3AF;
+  --color-border:         #E5E7EB;
+  --color-border-focus:   #00555A;
+
+  /* Sidebar */
+  --sidebar-width:        260px;
+  --sidebar-collapsed:    72px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Border Radius */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:   0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.05);
+  --shadow-lg:   0 10px 30px rgba(0,0,0,.10), 0 4px 8px rgba(0,0,0,.06);
+  --shadow-xl:   0 20px 60px rgba(0,0,0,.12), 0 8px 16px rgba(0,0,0,.08);
+  --shadow-auth: 0 25px 80px rgba(0,85,90,.18), 0 8px 24px rgba(0,85,90,.10);
+
+  /* Transitions */
+  --transition-fast:   150ms ease;
+  --transition-base:   250ms ease;
+  --transition-slow:   400ms ease;
+
+  /* Typography */
+  --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Plus Jakarta Sans', 'Inter', sans-serif;
+
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 15px;
+  --text-md:   17px;
+  --text-lg:   20px;
+  --text-xl:   24px;
+  --text-2xl:  30px;
+  --text-3xl:  36px;
+  --text-4xl:  48px;
+}
+
+/* ── Base ── */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Typography ── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-text);
+}
+
+p { line-height: 1.65; }
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover { color: var(--color-primary-light); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-light); }
+
+/* ── Focus ── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Selection ── */
+::selection {
+  background: var(--color-primary-100);
+  color: var(--color-primary-dark);
+}
+
+/* ── Utility: Skeleton shimmer ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0ebe4 25%,
+    #e8e3dc 50%,
+    #f0ebe4 75%
+  );
+  background-size: 1200px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: var(--radius-md);
+}
+
+/* ── Utility: Fade in ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn var(--transition-slow) ease forwards;
+}
+
+/* ── Utility: Spin ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
