@@ -1,0 +1,180 @@
+/* ════════════════════════════════════════════
+   Perfil da Empresa (Etapa 4)
+════════════════════════════════════════════ */
+
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-2);
+}
+
+.profile-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.profile-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    color: var(--color-primary-dark);
+}
+
+.profile-subtitle {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+}
+
+/* ── Seções/Cards ── */
+.profile-section {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-sm);
+}
+
+.profile-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.profile-section-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* ── Grid de Dados Cadastrais ── */
+.data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-5);
+}
+
+.data-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.data-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-light);
+    letter-spacing: 0.5px;
+}
+
+.data-value {
+    font-size: var(--text-sm);
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+/* ── Badges ── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-success {
+    background: rgba(6, 214, 160, 0.15);
+    color: var(--color-success-dark);
+}
+
+.badge-warning {
+    background: rgba(237, 104, 14, 0.1);
+    color: var(--color-warning-dark);
+}
+
+.badge-neutral {
+    background: #F3F4F6;
+    color: var(--color-text-muted);
+}
+
+.badge-primary {
+    background: var(--color-primary-50);
+    color: var(--color-primary-dark);
+}
+
+/* ── Lista de Membros e Certificações ── */
+.list-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4);
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    transition: border-color var(--transition-fast);
+}
+
+.list-item:hover {
+    border-color: var(--color-secondary);
+}
+
+.member-info,
+.cert-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.member-name,
+.cert-title {
+    font-weight: 600;
+    color: var(--color-text);
+    font-size: var(--text-base);
+}
+
+.member-email,
+.cert-meta {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+}
+
+.cert-tags {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.cert-tag {
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+}

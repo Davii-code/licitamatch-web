@@ -1,0 +1,264 @@
+/* ════════════════════════════════════════════
+   Elegibilidade e Análise (Etapa 5)
+════════════════════════════════════════════ */
+
+.eligibility-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 1000px;
+}
+
+.eligibility-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.eligibility-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 320px;
+}
+
+.eligibility-input-group label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-primary-dark);
+}
+
+.currency-input {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  padding: 0 var(--space-3);
+  height: 48px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.currency-input:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-50);
+}
+
+.currency-prefix {
+  color: var(--color-text-light);
+  font-weight: 600;
+  margin-right: var(--space-2);
+}
+
+.currency-input input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text);
+  width: 100%;
+}
+
+/* ── Score Circular & Progress ── */
+.score-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.score-circle {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: conic-gradient(var(--color-success) 0%, var(--color-success) 85%, #E5E7EB 85%, #E5E7EB 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-circle-inner {
+  width: 80px;
+  height: 80px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-value {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.score-details {
+  flex: 1;
+}
+
+.score-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+.score-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+/* ── Progress Bar ── */
+.progress-container {
+  margin-top: var(--space-4);
+  background: var(--color-bg);
+  height: 8px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: var(--radius-full);
+  transition: width 1s ease-in-out;
+}
+
+/* ── Risk Cards (LOW / HIGH / CRITICAL) ── */
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.risk-card {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 1.5px solid transparent;
+}
+
+.risk-card-low {
+  background: rgba(6, 214, 160, 0.05);
+  border-color: rgba(6, 214, 160, 0.2);
+}
+
+.risk-card-medium {
+  background: rgba(237, 104, 14, 0.05); /* Warning orange */
+  border-color: rgba(237, 104, 14, 0.2);
+}
+
+.risk-card-critical {
+  background: rgba(238, 108, 77, 0.05); /* Danger red */
+  border-color: rgba(238, 108, 77, 0.2);
+}
+
+.risk-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.risk-card-low .risk-header { color: var(--color-success-dark); }
+.risk-card-medium .risk-header { color: var(--color-warning-dark); }
+.risk-card-critical .risk-header { color: var(--color-danger); }
+
+.risk-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--color-text);
+}
+
+.risk-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ── Requisitos Grid (Verde vs Vermelho) ── */
+.req-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+
+.req-column {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.req-col-header {
+  padding: var(--space-3) var(--space-4);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.req-col-green .req-col-header {
+  background: rgba(6, 214, 160, 0.1);
+  color: var(--color-success-dark);
+}
+
+.req-col-red .req-col-header {
+  background: rgba(238, 108, 77, 0.1);
+  color: var(--color-danger-dark);
+}
+
+.req-list {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.req-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.req-item svg {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.req-col-green .req-item svg { color: var(--color-success); }
+.req-col-red .req-item svg { color: var(--color-danger); }

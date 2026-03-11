@@ -1,0 +1,227 @@
+/* ════════════════════════════════════════════
+   Onboarding Layout — Seleção e Cadastro de Empresa
+════════════════════════════════════════════ */
+
+.onboarding-root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg);
+    padding: var(--space-8) var(--space-4);
+}
+
+.onboarding-header {
+    text-align: center;
+    margin-bottom: var(--space-10);
+    animation: fadeIn 0.4s ease forwards;
+}
+
+.onboarding-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-3xl);
+    font-weight: 800;
+    color: var(--color-text);
+    margin-top: var(--space-4);
+    letter-spacing: -0.5px;
+}
+
+.onboarding-subtitle {
+    font-size: var(--text-base);
+    color: var(--color-text-muted);
+    max-width: 500px;
+    margin: var(--space-2) auto 0;
+}
+
+/* ── Container Principal ── */
+.onboarding-container {
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+/* ── Card UI (Preenchimento) ── */
+.onboarding-card {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border);
+    padding: var(--space-8);
+    margin-bottom: var(--space-6);
+}
+
+.onboarding-card-header {
+    margin-bottom: var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-4);
+}
+
+.onboarding-card-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* ── Preview Flex Box ── */
+.preview-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+    background: #fdfdfd;
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+@media (max-width: 600px) {
+    .preview-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.preview-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.preview-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--color-text-light);
+    letter-spacing: 0.5px;
+}
+
+.preview-value {
+    font-size: var(--text-sm);
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+/* ── Badges de Status ── */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.active {
+    background: rgba(6, 214, 160, 0.1);
+    color: #04A87D;
+    border: 1px solid rgba(6, 214, 160, 0.2);
+}
+
+.status-badge.suspended {
+    background: rgba(238, 108, 77, 0.1);
+    color: #CC4C2F;
+    border: 1px solid rgba(238, 108, 77, 0.2);
+}
+
+.status-badge.unknown {
+    background: #F3F4F6;
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+}
+
+/* ── Skeleton do formulário ── */
+.skeleton-box {
+    height: 20px;
+    border-radius: 4px;
+}
+
+/* ── Input gigante CNPJ ── */
+.cnpj-input-wrapper {
+    position: relative;
+    margin-bottom: var(--space-6);
+}
+
+.cnpj-input {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    text-align: center;
+    letter-spacing: 2px;
+    padding: var(--space-4);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: rgb(255, 255, 255);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.cnpj-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px var(--color-primary-50);
+}
+
+.cnpj-input::placeholder {
+    color: #D1D5DB;
+    font-weight: 400;
+    letter-spacing: normal;
+}
+
+/* ── Lista de Seleção (CompanySelection) ── */
+.company-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-8);
+}
+
+.company-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-5);
+    background: #fff;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.company-item:hover {
+    border-color: var(--color-secondary);
+    box-shadow: 0 4px 12px rgba(156, 175, 136, 0.15);
+    transform: translateY(-2px);
+}
+
+.company-item-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.company-item-name {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: var(--text-md);
+    color: var(--color-primary-dark);
+}
+
+.company-item-cnpj {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+}
+
+.company-item-role {
+    font-size: var(--text-xs);
+    color: var(--color-text-light);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
