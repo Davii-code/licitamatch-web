@@ -48,7 +48,7 @@ export interface ApiError {
 }
 
 // ── Utilitário de fetch ──
-async function apiFetch<T>(
+export async function apiFetch<T>(
     path: string,
     options: RequestInit = {}
 ): Promise<T> {
