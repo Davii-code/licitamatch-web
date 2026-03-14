@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { stripCNPJ, formatCNPJ, validateCNPJ } from '../../utils/cnpj';
-import { companyApi, type PublicCompanyPreview } from '../../services/company.service';
+import { companyApi, type PublicCompanyPreview, type CompanyNiche } from '../../services/company.service';
 import '../../styles/onboarding.css';
+
+const NICHE_OPTIONS: Array<{ value: CompanyNiche; label: string }> = [
+    { value: 'COMPRAS', label: 'Compras e Suprimentos' },
+    { value: 'OBRAS', label: 'Obras e Infraestrutura' },
+    { value: 'SERVICOS', label: 'Servicos Gerais' },
+    { value: 'TIC', label: 'Tecnologia (TIC)' },
+    { value: 'SAUDE', label: 'Saude' },
+    { value: 'ENGENHARIA', label: 'Engenharia' },
+    { value: 'MAO_DE_OBRA', label: 'Mao de Obra Terceirizada' },
+    { value: 'LOCACAO_IMOVEL', label: 'Locacao de Imoveis' },
+    { value: 'EDUCACAO', label: 'Educacao e Treinamentos' },
+    { value: 'ALIMENTACAO', label: 'Alimentacao e Merenda' },
+];
 
 interface CompanyRegistrationProps {
     onSuccess: (company: { cnpj: string }) => void;
@@ -16,6 +29,8 @@ export const CompanyRegistration: React.FC<CompanyRegistrationProps> = ({
 }) => {
     const [cnpj, setCnpj] = useState('');
     const [isValid, setIsValid] = useState<boolean | null>(null);
+    const [nichoPrincipal, setNichoPrincipal] = useState<CompanyNiche | ''>('');
+    const [nichosSecundarios, setNichosSecundarios] = useState<CompanyNiche[]>([]);
 
     // Preview
     const [preview, setPreview] = useState<PublicCompanyPreview | null>(null);
@@ -66,13 +81,17 @@ export const CompanyRegistration: React.FC<CompanyRegistrationProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!isValid || !preview) return;
+        if (!isValid || !preview || !nichoPrincipal) return;
 
         setIsSubmitting(true);
         setSubmitError(null);
 
         try {
-            const response = await companyApi.create(stripCNPJ(cnpj));
+            const response = await companyApi.create({
+                cnpj: stripCNPJ(cnpj),
+                nichoPrincipal,
+                nichosSecundarios,
+            });
             onSuccess(response.company);
         } catch (err) {
             setSubmitError(err instanceof Error ? err.message : 'Falha ao vincular empresa.');
@@ -80,6 +99,18 @@ export const CompanyRegistration: React.FC<CompanyRegistrationProps> = ({
             setIsSubmitting(false);
         }
     };
+
+    const toggleSecondaryNiche = (niche: CompanyNiche) => {
+        setNichosSecundarios((current) => {
+            if (current.includes(niche)) return current.filter((item) => item !== niche);
+            return [...current, niche];
+        });
+    };
+
+    useEffect(() => {
+        if (!nichoPrincipal) return;
+        setNichosSecundarios((current) => current.filter((n) => n !== nichoPrincipal));
+    }, [nichoPrincipal]);
 
     return (
         <div className="onboarding-root">
@@ -129,6 +160,38 @@ export const CompanyRegistration: React.FC<CompanyRegistrationProps> = ({
                         {preview && !isLoadingPreview && (
                             <div className="preview-grid fade-in">
                                 <div className="preview-field" style={{ gridColumn: 'span 2' }}>
+                                    <label className="preview-label" htmlFor="nicho-principal">Nicho principal</label>
+                                    <select
+                                        id="nicho-principal"
+                                        className="niche-select"
+                                        value={nichoPrincipal}
+                                        onChange={(e) => setNichoPrincipal(e.target.value as CompanyNiche | '')}
+                                        required
+                                    >
+                                        <option value="">Selecione o nicho principal</option>
+                                        {NICHE_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="preview-field" style={{ gridColumn: 'span 2' }}>
+                                    <span className="preview-label">Nichos secundarios (opcional)</span>
+                                    <div className="niche-checkbox-grid">
+                                        {NICHE_OPTIONS.filter((option) => option.value !== nichoPrincipal).map((option) => (
+                                            <label key={option.value} className="niche-checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={nichosSecundarios.includes(option.value)}
+                                                    onChange={() => toggleSecondaryNiche(option.value)}
+                                                />
+                                                <span>{option.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="preview-field" style={{ gridColumn: 'span 2' }}>
                                     <span className="preview-label">Razão Social</span>
                                     <span className="preview-value">{preview.razao_social}</span>
                                 </div>
@@ -169,7 +232,7 @@ export const CompanyRegistration: React.FC<CompanyRegistrationProps> = ({
                             <button
                                 type="submit"
                                 className="btn btn-primary"
-                                disabled={!isValid || !preview || isSubmitting || isLoadingPreview}
+                                disabled={!isValid || !preview || !nichoPrincipal || isSubmitting || isLoadingPreview}
                             >
                                 {isSubmitting ? (
                                     <><span className="btn-spinner" /> Registrando...</>

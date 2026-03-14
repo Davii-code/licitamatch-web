@@ -113,7 +113,11 @@ export const CompanyProfile: React.FC<CompanyProfileProps> = ({ cnpj }) => {
                         </div>
                         <div className="data-item">
                             <span className="data-label">Porte da Empresa</span>
-                            <span className="data-value">{company.size || 'Não informado'}</span>
+                                <span className="data-value">{company.size || 'Não informado'}</span>
+                        </div>
+                        <div className="data-item">
+                            <span className="data-label">Situação Cadastral</span>
+                            <span className="data-value">{company.status || 'Não informado'}</span>
                         </div>
                         <div className="data-item">
                             <span className="data-label">Capital Social</span>
@@ -130,6 +134,18 @@ export const CompanyProfile: React.FC<CompanyProfileProps> = ({ cnpj }) => {
                         <div className="data-item">
                             <span className="data-label">Localização</span>
                             <span className="data-value">{company.address?.city} - {company.address?.state}</span>
+                        </div>
+                        <div className="data-item">
+                            <span className="data-label">Telefone</span>
+                            <span className="data-value">{company.phone || 'Não informado'}</span>
+                        </div>
+                        <div className="data-item">
+                            <span className="data-label">Email</span>
+                            <span className="data-value">{company.email || 'Não informado'}</span>
+                        </div>
+                        <div className="data-item">
+                            <span className="data-label">Regime Tributário</span>
+                            <span className="data-value">{company.taxRegime || 'Não informado'}</span>
                         </div>
                     </div>
                 </div>

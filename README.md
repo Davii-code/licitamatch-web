@@ -1,75 +1,215 @@
-# React + TypeScript + Vite
+# LicitaMatch Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Front-end do LicitaMatch, desenvolvido com React + Vite + TypeScript.
 
-Currently, two official plugins are available:
+## Visao Geral
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+A aplicação web oferece:
 
-## React Compiler
+- autenticação e onboarding de empresa;
+- seleção de empresa ativa por CNPJ;
+- dashboard com cache local de métricas;
+- busca de licitações com filtros (nicho, estado, município, datas e modalidade);
+- tela de perfil e segurança (inclusive atualização de senha);
+- fluxo de "esqueci minha senha" integrado ao back-end.
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## Stack
 
-Note: This will impact Vite dev & build performances.
+- React 19
+- TypeScript
+- Vite 7
+- CSS modular por domínio (`src/styles`)
 
-## Expanding the ESLint configuration
+## Estrutura
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+licitamatch-web/
+├── public/
+│   └── licitamatch-logo.svg
+├── src/
+│   ├── components/
+│   │   ├── auth/
+│   │   ├── dashboard/
+│   │   ├── layout/
+│   │   ├── onboarding/
+│   │   ├── profile/
+│   │   ├── settings/
+│   │   └── tenders/
+│   ├── context/
+│   │   └── AuthContext.tsx
+│   ├── services/
+│   │   ├── auth.service.ts
+│   │   ├── api.service.ts
+│   │   ├── company.service.ts
+│   │   ├── location.service.ts
+│   │   └── tender.service.ts
+│   ├── styles/
+│   │   ├── auth.css
+│   │   ├── dashboard.css
+│   │   ├── onboarding.css
+│   │   ├── profile.css
+│   │   └── settings.css
+│   ├── App.tsx
+│   └── main.tsx
+├── index.html
+└── package.json
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Requisitos
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Node.js 20+
+- back-end do projeto rodando
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Instalacao
+
+```bash
+npm install
 ```
+
+## Variaveis de Ambiente
+
+Crie `licitamatch-web/.env` (opcional em dev, obrigatório em alguns cenários de deploy):
+
+```env
+# Em desenvolvimento, pode ficar vazio para usar proxy do Vite
+VITE_API_URL=
+```
+
+- Em desenvolvimento: a app usa `/api/*` via proxy.
+- Em produção: defina `VITE_API_URL=https://seu-backend.com`.
+
+## Scripts
+
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
+```
+
+## Como Rodar (Dev)
+
+No terminal 1 (back-end):
+
+```bash
+cd back-end
+npm run dev
+```
+
+No terminal 2 (front-end):
+
+```bash
+cd licitamatch-web
+npm run dev
+```
+
+## Fluxo de Usuario
+
+### 1) Login e Sessao
+
+- Login em `AuthPage` (`/` no app).
+- Token salvo em `localStorage` por `authApi.persistSession`.
+- `AuthContext` mantém usuário e empresa atual.
+
+### 2) Onboarding
+
+- Se usuário não possui empresas vinculadas:
+  - tela de cadastro por CNPJ;
+  - seleção de `nichoPrincipal` e `nichosSecundarios`.
+
+### 3) Selecao de Empresa
+
+- Usuário escolhe empresa na `CompanySelection`.
+- Front chama `POST /api/auth/select-company`.
+- Novo token com contexto empresarial é persistido.
+
+### 4) Dashboard
+
+- `DashboardOverview` chama métricas por CNPJ.
+- Cache local por 2h (`dashboardApi.getMetrics` / `getCachedMetrics`).
+- Botão "Recarregar dashboard" força atualização.
+
+### 5) Licitacoes
+
+Na tela `TenderList`:
+
+- filtros por modalidade, nicho, UF, município e período;
+- match dinâmico por nicho + descrição do edital;
+- botão `Ver Detalhes` abre link oficial;
+- fallback para busca no PNCP quando link externo não existir.
+
+## Servicos de API (Resumo)
+
+### `auth.service.ts`
+
+- `login(email, password)`
+- `register(email, password, name?)`
+- `selectCompany(cnpj)`
+- `forgotPassword(email)`
+- `resetPassword(token, newPassword)`
+
+### `api.service.ts`
+
+- `dashboardApi.getMetrics(cnpj, { forceRefresh? })`
+- `dashboardApi.getCachedMetrics(cnpj)`
+- `userApi.updateProfile(...)`
+- `userApi.updatePassword(...)`
+
+### `tender.service.ts`
+
+- `getPremiumTenders(params)`
+- `getTenderDetail(id)`
+- `getModalities()`
+
+### `company.service.ts`
+
+- `previewCNPJ(cleanCnpj)`
+- `create(payload)`
+- `list()`
+- `get(cnpj)`
+
+### `location.service.ts`
+
+- `getEstados()`
+- `getMunicipios(uf)`
+
+## UX e Interface
+
+- favicon customizado em `public/licitamatch-logo.svg`;
+- badge de plano no header (`Visitante`, `Plano Free`, `Plano Premium`);
+- remoção do ícone de notificação mock no header;
+- campo de senha com ícone de olho na aba de configurações.
+
+## Build
+
+```bash
+npm run build
+```
+
+## Problemas Comuns
+
+### Tela sem dados no dashboard
+
+- confira se empresa está selecionada;
+- verifique token em `localStorage`;
+- use botão de recarregar para ignorar cache.
+
+### Erro ao buscar municípios
+
+- valide se o back-end está ativo;
+- verifique rota `/api/localidades/estados/{uf}/municipios`.
+
+### Esqueci senha sem e-mail
+
+- o envio depende do SMTP no back-end;
+- confira variáveis `SMTP_*` no `back-end/.env`.
+
+## Roadmap Sugerido
+
+- página dedicada de redefinição de senha no front (`/reset-password`);
+- tipagem estrita para todos os DTOs de API;
+- testes de interface para fluxos críticos (login, seleção de empresa, busca).
+
+## Licenca
+
+Uso interno do projeto LicitaMatch.

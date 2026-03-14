@@ -72,6 +72,37 @@
   cursor: not-allowed;
 }
 
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 74px;
+}
+
+.password-eye-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 6px;
+}
+
+.password-eye-btn:hover {
+  background: rgba(0, 85, 90, 0.08);
+}
+
 /* ── Histórico de Auditoria ── */
 .audit-list {
   display: flex;

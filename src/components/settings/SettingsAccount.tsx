@@ -2,6 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { userApi } from '../../services/api.service';
 
+const IconEye = () => (
+   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+   </svg>
+);
+
+const IconEyeOff = () => (
+   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path d="M9.88 9.88a3 3 0 1 0 4.243 4.243" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+   </svg>
+);
+
 const MOCK_AUDIT = [
    { id: 1, date: '10/03/2026 14:30', actor: 'Davi Faria', action: 'Sincronizou dados via OpenCNPJ (Receita Federal)' },
    { id: 2, date: '08/03/2026 09:15', actor: 'Sistema', action: 'Atestado de Capacidade Técnica adicionado' },
@@ -14,6 +30,11 @@ export const SettingsAccount: React.FC = () => {
    const [passSaving, setPassSaving] = useState(false);
    const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
    const [passData, setPassData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+   const [showPasswords, setShowPasswords] = useState({ oldPassword: false, newPassword: false, confirmPassword: false });
+
+   const togglePasswordVisibility = (field: 'oldPassword' | 'newPassword' | 'confirmPassword') => {
+      setShowPasswords((prev) => ({ ...prev, [field]: !prev[field] }));
+   };
 
    useEffect(() => {
        if (user) {
@@ -104,15 +125,60 @@ export const SettingsAccount: React.FC = () => {
             <div className="settings-form-grid">
                <div className="settings-input" style={{ gridColumn: '1 / -1' }}>
                   <label>Senha Atual</label>
-                  <input type="password" placeholder="Digite sua senha atual" value={passData.oldPassword} onChange={e => setPassData({...passData, oldPassword: e.target.value})} />
+                  <div className="password-input-wrapper">
+                     <input
+                        type={showPasswords.oldPassword ? 'text' : 'password'}
+                        placeholder="Digite sua senha atual"
+                        value={passData.oldPassword}
+                        onChange={e => setPassData({...passData, oldPassword: e.target.value})}
+                     />
+                     <button
+                        type="button"
+                        className="password-eye-btn"
+                        onClick={() => togglePasswordVisibility('oldPassword')}
+                        aria-label={showPasswords.oldPassword ? 'Ocultar senha atual' : 'Mostrar senha atual'}
+                     >
+                        {showPasswords.oldPassword ? <IconEyeOff /> : <IconEye />}
+                     </button>
+                  </div>
                </div>
                <div className="settings-input">
                   <label>Nova Senha</label>
-                  <input type="password" placeholder="Digite a nova senha" value={passData.newPassword} onChange={e => setPassData({...passData, newPassword: e.target.value})} />
+                  <div className="password-input-wrapper">
+                     <input
+                        type={showPasswords.newPassword ? 'text' : 'password'}
+                        placeholder="Digite a nova senha"
+                        value={passData.newPassword}
+                        onChange={e => setPassData({...passData, newPassword: e.target.value})}
+                     />
+                     <button
+                        type="button"
+                        className="password-eye-btn"
+                        onClick={() => togglePasswordVisibility('newPassword')}
+                        aria-label={showPasswords.newPassword ? 'Ocultar nova senha' : 'Mostrar nova senha'}
+                     >
+                        {showPasswords.newPassword ? <IconEyeOff /> : <IconEye />}
+                     </button>
+                  </div>
                </div>
                <div className="settings-input">
                   <label>Confirmar Nova Senha</label>
-                  <input type="password" placeholder="Repita a nova senha" value={passData.confirmPassword} onChange={e => setPassData({...passData, confirmPassword: e.target.value})} />
+                  <div className="password-input-wrapper">
+                     <input
+                        type={showPasswords.confirmPassword ? 'text' : 'password'}
+                        placeholder="Repita a nova senha"
+                        value={passData.confirmPassword}
+                        onChange={e => setPassData({...passData, confirmPassword: e.target.value})}
+                     />
+                     <button
+                        type="button"
+                        className="password-eye-btn"
+                        onClick={() => togglePasswordVisibility('confirmPassword')}
+                        aria-label={showPasswords.confirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
+                     >
+                        {showPasswords.confirmPassword ? <IconEyeOff /> : <IconEye />}
+                     </button>
+                  </div>
                </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>

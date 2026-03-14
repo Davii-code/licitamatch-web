@@ -6,7 +6,17 @@ export const tenderApi = {
      */
     getPremiumTenders: (params: Record<string, string | number>) => {
         const urlParams = new URLSearchParams(params as Record<string, string>).toString();
-        return apiFetch<{ data: any[], totalRecords: number, paywall: boolean, paywallMessage?: string }>(`/api/tenders/premium?${urlParams}`, {
+        return apiFetch<{
+            data: any[];
+            totalRecords: number;
+            totalPages: number;
+            page: number;
+            hasNextPage: boolean;
+            nicheFallback?: boolean;
+            nichoInfo?: string;
+            paywall: boolean;
+            paywallMessage?: string;
+        }>(`/api/tenders/premium?${urlParams}`, {
             method: 'GET',
         });
     },

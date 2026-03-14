@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { authApi, type CompanyBrief } from '../../services/auth.service';
+import { authApi, type CompanyBrief, type UserInfo } from '../../services/auth.service';
 
 // ── Tipos ──
 interface LoginFormData {
@@ -15,7 +15,7 @@ interface LoginFormErrors {
 }
 
 interface LoginFormProps {
-    onSuccess: (companies: CompanyBrief[], token: string) => void;
+    onSuccess: (companies: CompanyBrief[], token: string, user: UserInfo) => void;
     onSwitchToRegister: () => void;
 }
 
@@ -78,6 +78,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegis
     const [errors, setErrors] = useState<LoginFormErrors>({});
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isSendingRecovery, setIsSendingRecovery] = useState(false);
+    const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
 
     const handleChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,12 +109,32 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegis
         try {
             const response = await authApi.login(formData.email, formData.password);
             authApi.persistSession(response.accessToken);
-            onSuccess(response.companies, response.accessToken);
+            onSuccess(response.companies, response.accessToken, response.user);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Erro ao fazer login';
             setErrors({ general: message });
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        if (!formData.email) {
+            setErrors((prev) => ({ ...prev, email: 'Informe seu e-mail para recuperar a senha' }));
+            return;
+        }
+
+        setIsSendingRecovery(true);
+        setRecoveryMessage(null);
+
+        try {
+            const response = await authApi.forgotPassword(formData.email);
+            setRecoveryMessage(response.message);
+        } catch (err) {
+            setRecoveryMessage(err instanceof Error ? err.message : 'Erro ao solicitar recuperação de senha.');
+        } finally {
+            setIsSendingRecovery(false);
         }
     };
 
@@ -152,10 +174,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegis
                     <a
                         href="#"
                         style={{ fontSize: 'var(--text-xs)', fontWeight: 600 }}
-                        onClick={(e) => e.preventDefault()}
+                        onClick={handleForgotPassword}
                         tabIndex={-1}
                     >
-                        Esqueci minha senha
+                        {isSendingRecovery ? 'Enviando...' : 'Esqueci minha senha'}
                     </a>
                 </div>
                 <div className="form-input-wrapper">
@@ -213,6 +235,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegis
                     'Entrar na plataforma'
                 )}
             </button>
+
+            {recoveryMessage && (
+                <div className="auth-alert auth-alert-success" role="status" style={{ marginTop: 'var(--space-3)' }}>
+                    <span>{recoveryMessage}</span>
+                </div>
+            )}
 
             {/* Link para cadastro */}
             <p className="auth-footer-link">

@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
 import { LicitaMatchLogo } from '../ui/LicitaMatchLogo';
-import { type CompanyBrief } from '../../services/auth.service';
+import { type CompanyBrief, type UserInfo } from '../../services/auth.service';
 import '../../styles/auth.css';
 
 // ── Tipos ──
 type AuthTab = 'login' | 'register';
 
 interface AuthPageProps {
-    onAuthenticated: (companies: CompanyBrief[], token: string) => void;
+    onAuthenticated: (companies: CompanyBrief[], token: string, user: UserInfo) => void;
 }
 
 // ── Brand Panel ──

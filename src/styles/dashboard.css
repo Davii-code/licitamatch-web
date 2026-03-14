@@ -118,6 +118,33 @@
     color: var(--color-primary-dark);
 }
 
+.plan-pill {
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    border: 1px solid transparent;
+}
+
+.plan-pill-premium {
+    color: #7a4f00;
+    background: linear-gradient(135deg, #ffefc3 0%, #ffe08a 100%);
+    border-color: #e7c76a;
+}
+
+.plan-pill-free {
+    color: var(--color-primary-dark);
+    background: rgba(56, 189, 248, 0.12);
+    border-color: rgba(56, 189, 248, 0.25);
+}
+
+.plan-pill-guest {
+    color: var(--color-text-muted);
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+}
+
 .content-area {
     padding: var(--space-8);
     flex: 1;
@@ -129,6 +156,61 @@
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: var(--space-6);
     margin-bottom: var(--space-8);
+}
+
+.dashboard-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    border: 1px solid rgba(0, 85, 90, 0.12);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-6);
+    background: linear-gradient(135deg, rgba(0, 85, 90, 0.04) 0%, rgba(6, 214, 160, 0.06) 100%);
+}
+
+.dashboard-hero-title {
+    margin: 0 0 4px;
+    font-family: var(--font-heading);
+    font-size: var(--text-2xl);
+    color: var(--color-primary-dark);
+}
+
+.dashboard-hero-subtitle {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}
+
+.dashboard-refresh-btn {
+    white-space: nowrap;
+}
+
+.dashboard-summary-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--space-6);
+}
+
+.dashboard-summary-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    color: var(--color-primary-dark);
+    margin-bottom: var(--space-2);
+}
+
+.dashboard-summary-text {
+    color: var(--color-text);
+    line-height: 1.6;
+    max-width: 900px;
+}
+
+.dashboard-charts-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
 .dash-card {
@@ -148,6 +230,13 @@
     box-shadow: 0 12px 24px rgba(0, 85, 90, 0.08);
     /* shadow brand sutil */
     border-color: rgba(156, 175, 136, 0.4);
+}
+
+@media (max-width: 900px) {
+    .dashboard-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 .dash-card-icon {
@@ -201,6 +290,22 @@
 
 .filter-select:focus {
     border-color: var(--color-primary);
+}
+
+.tender-date-input {
+    min-width: 172px;
+    padding-right: 36px;
+}
+
+.tender-date-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 999px;
+    transition: background-color var(--transition-fast);
+}
+
+.tender-date-input:hover::-webkit-calendar-picker-indicator {
+    background-color: rgba(0, 85, 90, 0.08);
 }
 
 .tender-list {

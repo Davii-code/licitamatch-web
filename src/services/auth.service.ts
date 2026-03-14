@@ -25,6 +25,8 @@ export interface CompanyBrief {
         tradeName: string | null;
         status: string;
         size: string | null;
+        nichoPrincipal: string | null;
+        nichosSecundarios: string[];
         city: string | null;
         state: string | null;
     };
@@ -37,9 +39,40 @@ export interface LoginResponse extends AuthTokens {
     nextStep: string;
 }
 
+export interface SelectedCompany {
+    cnpj: string;
+    legalName: string;
+    tradeName: string | null;
+    status: string;
+    size: string | null;
+    nichoPrincipal: string | null;
+    nichosSecundarios: string[];
+    needsRefresh: boolean;
+}
+
+export interface SelectedMembership {
+    accessLevel: 'OWNER' | 'ADMIN' | 'BIDDER';
+    isLegalRepresentative: boolean;
+}
+
+export interface SelectCompanyResponse {
+    accessToken: string;
+    company: SelectedCompany;
+    membership: SelectedMembership;
+    warnings: string[];
+}
+
 export interface RegisterResponse {
     message: string;
     user: UserInfo;
+}
+
+export interface ForgotPasswordResponse {
+    message: string;
+}
+
+export interface ResetPasswordResponse {
+    message: string;
 }
 
 export interface ApiError {
@@ -89,10 +122,22 @@ export const authApi = {
         }),
 
     selectCompany: (cnpj: string) =>
-        apiFetch<{ accessToken: string; company: object; membership: object; warnings: string[] }>(
+        apiFetch<SelectCompanyResponse>(
             '/api/auth/select-company',
             { method: 'POST', body: JSON.stringify({ cnpj }) }
         ),
+
+    forgotPassword: (email: string) =>
+        apiFetch<ForgotPasswordResponse>('/api/auth/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        }),
+
+    resetPassword: (token: string, newPassword: string) =>
+        apiFetch<ResetPasswordResponse>('/api/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ token, newPassword }),
+        }),
 
     /** Salva o token no localStorage e retorna o usuário decodificado simplificado */
     persistSession: (token: string) => {

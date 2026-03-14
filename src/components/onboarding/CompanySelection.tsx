@@ -4,7 +4,7 @@ import '../../styles/onboarding.css';
 
 interface CompanySelectionProps {
     companies: CompanyBrief[];
-    onSelect: (token: string, company: object, membership: object) => void;
+    onSelect: (token: string, company: CompanyBrief) => void;
     onNewCompany: () => void;
     onLogout: () => void;
 }
@@ -26,7 +26,23 @@ export const CompanySelection: React.FC<CompanySelectionProps> = ({
             const response = await authApi.selectCompany(cnpj);
             // Salva o novo token devolvido pela API com o contexto de empresa
             authApi.persistSession(response.accessToken);
-            onSelect(response.accessToken, response.company, response.membership);
+            const normalizedCompany: CompanyBrief = {
+                cnpj: response.company.cnpj,
+                accessLevel: response.membership.accessLevel,
+                isLegalRepresentative: response.membership.isLegalRepresentative,
+                company: {
+                    cnpj: response.company.cnpj,
+                    legalName: response.company.legalName,
+                    tradeName: response.company.tradeName,
+                    status: response.company.status,
+                    size: response.company.size,
+                    nichoPrincipal: response.company.nichoPrincipal,
+                    nichosSecundarios: response.company.nichosSecundarios,
+                    city: null,
+                    state: null,
+                },
+            };
+            onSelect(response.accessToken, normalizedCompany);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erro ao selecionar empresa.');
         } finally {

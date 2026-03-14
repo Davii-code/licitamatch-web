@@ -1,5 +1,17 @@
 import { apiFetch } from './auth.service';
 
+export type CompanyNiche =
+    | 'COMPRAS'
+    | 'OBRAS'
+    | 'SERVICOS'
+    | 'TIC'
+    | 'SAUDE'
+    | 'ENGENHARIA'
+    | 'MAO_DE_OBRA'
+    | 'LOCACAO_IMOVEL'
+    | 'EDUCACAO'
+    | 'ALIMENTACAO';
+
 export interface PublicCompanyPreview {
     cnpj: string;
     razao_social: string;
@@ -12,6 +24,12 @@ export interface PublicCompanyPreview {
     bairro: string;
     municipio: string;
     uf: string;
+}
+
+export interface CreateCompanyPayload {
+    cnpj: string;
+    nichoPrincipal: CompanyNiche;
+    nichosSecundarios?: CompanyNiche[];
 }
 
 export const companyApi = {
@@ -31,10 +49,10 @@ export const companyApi = {
     },
 
     /** Cria a empresa no banco de dados do LicitaMatch */
-    create: (cnpj: string) =>
+    create: (payload: CreateCompanyPayload) =>
         apiFetch<{ message: string; company: { cnpj: string } }>('/api/companies', {
             method: 'POST',
-            body: JSON.stringify({ cnpj }),
+            body: JSON.stringify(payload),
         }),
 
     /** Busca todas as empresas do usuário autenticado */

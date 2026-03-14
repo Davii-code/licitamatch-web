@@ -7,31 +7,29 @@ import { DashboardOverview } from './components/dashboard/DashboardOverview';
 import { TenderList } from './components/tenders/TenderList';
 import { CompanyProfile } from './components/profile/CompanyProfile';
 import { EligibilityAnalysis } from './components/eligibility/EligibilityAnalysis';
-import { SavedSearches } from './components/alerts/SavedSearches';
 import { SettingsAccount } from './components/settings/SettingsAccount';
-import { type CompanyBrief } from './services/auth.service';
+import { type CompanyBrief, type UserInfo } from './services/auth.service';
 import { companyApi } from './services/company.service';
 import { useAuth } from './context/AuthContext';
 import './index.css';
 import './styles/dashboard.css';
 import './styles/profile.css';
 import './styles/eligibility.css';
-import './styles/alerts.css';
 import './styles/settings.css';
 
 // ── Tipos de estado da aplicação ──
-type AppView = 'auth' | 'select-company' | 'register-company' | 'dashboard' | 'tenders' | 'alerts' | 'eligibility' | 'profile' | 'settings';
+type AppView = 'auth' | 'select-company' | 'register-company' | 'dashboard' | 'tenders' | 'eligibility' | 'profile' | 'settings';
 
 // ── App ──
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>('auth');
   const [companies, setCompanies] = useState<CompanyBrief[]>([]);
 
-  const { token, user, setAuth, setCurrentCompany, logout, currentCompany } = useAuth();
+  const { token, setAuth, setCurrentCompany, logout, currentCompany } = useAuth();
 
-  const handleAuthenticated = (fetchedCompanies: CompanyBrief[], newToken: string) => {
+  const handleAuthenticated = (fetchedCompanies: CompanyBrief[], newToken: string, user: UserInfo) => {
     // AuthContext parsea o user a partir do token de qualquer forma.
-    setAuth(newToken, { id: '', email: '', name: '', role: 'GUEST' }, fetchedCompanies);
+    setAuth(newToken, user, fetchedCompanies);
     setCompanies(fetchedCompanies);
     setView(fetchedCompanies.length === 0 ? 'register-company' : 'select-company');
   };
@@ -42,10 +40,9 @@ const App: React.FC = () => {
     setCompanies([]);
   };
 
-  const handleCompanySelected = (newToken: string, company: object, membership: object) => {
-    // This is from selectCompany API call which updates token context potentially
-    // but in select-company we probably just call setCurrentCompany
-    setCurrentCompany(company as CompanyBrief);
+  const handleCompanySelected = (_newToken: string, company: CompanyBrief) => {
+    // select-company agora já entrega CompanyBrief normalizado
+    setCurrentCompany(company);
     setView('dashboard');
   };
 
@@ -56,7 +53,23 @@ const App: React.FC = () => {
       setView('select-company');
     } catch (err) {
       console.error(err);
-      handleCompanySelected(token!, newCompany, {});
+      const fallbackCompany: CompanyBrief = {
+        cnpj: newCompany.cnpj,
+        accessLevel: 'OWNER',
+        isLegalRepresentative: true,
+        company: {
+          cnpj: newCompany.cnpj,
+          legalName: 'Nova empresa',
+          tradeName: null,
+          status: 'ACTIVE',
+          size: null,
+          nichoPrincipal: null,
+          nichosSecundarios: [],
+          city: null,
+          state: null,
+        },
+      };
+      handleCompanySelected(token!, fallbackCompany);
     }
   };
 
@@ -99,7 +112,6 @@ const App: React.FC = () => {
       >
         {view === 'dashboard' && <DashboardOverview />}
         {view === 'tenders' && <TenderList />}
-        {view === 'alerts' && <SavedSearches />}
         {view === 'eligibility' && <EligibilityAnalysis />}
         {view === 'profile' &&
           <CompanyProfile cnpj={currentCompany?.company?.cnpj || ''} />
