@@ -27,6 +27,7 @@ type TenderItem = {
     nichos?: string[];
     externalLink?: string | null;
     linkEdital?: string | null;
+    semEdital?: boolean;
     locked?: boolean;
     match?: number;
 };
@@ -77,7 +78,18 @@ const NICHES = [
     { value: 'ALIMENTACAO', label: 'Alimentacao e Merenda' },
 ];
 
-// Função auxiliar para formatar datas
+// Hook de Debounce
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
+    React.useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => clearTimeout(handler);
+    }, [value, delay]);
+    return debouncedValue;
+}
+
 const formatDate = (dateStr: string) => {
     if (!dateStr || dateStr === 'N/A') return 'Data não informada';
     try {
@@ -121,6 +133,15 @@ export const TenderList: React.FC = () => {
     const [nicheInfo, setNicheInfo] = useState<string | null>(null);
     const [searchInfo, setSearchInfo] = useState<string | null>(null);
     const [isFtsFilterEnabled, setIsFtsFilterEnabled] = useState(featureFlags.tenderFtsSearch);
+
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+    // Efeito para busca automática via debounce
+    useEffect(() => {
+        if (hasSearched && isFtsFilterEnabled) {
+            handleSearch(1);
+        }
+    }, [debouncedSearchTerm]);
 
     // Carregar municípios quando estado mudar
     useEffect(() => {
@@ -373,6 +394,62 @@ export const TenderList: React.FC = () => {
                 </button>
             </div>
 
+            {/* ── Filtros Ativos ── */}
+            {(filter !== 'ALL' || stateFilter || municipioFilter || nicheFilter || searchTerm) && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', marginRight: '4px' }}>Filtros Ativos:</span>
+                    
+                    {filter !== 'ALL' && (
+                        <div className="tender-tag" style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' }}>
+                            Modalidade: {filter.replace(/_/g, ' ')}
+                            <button onClick={() => { setFilter('ALL'); if(hasSearched) handleSearch(1); }} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0 2px', fontWeight: 'bold' }}>×</button>
+                        </div>
+                    )}
+                    
+                    {nicheFilter && (
+                        <div className="tender-tag" style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' }}>
+                            Nicho: {NICHES.find(n => n.value === nicheFilter)?.label}
+                            <button onClick={() => { setNicheFilter(''); if(hasSearched) handleSearch(1); }} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0 2px', fontWeight: 'bold' }}>×</button>
+                        </div>
+                    )}
+
+                    {stateFilter && (
+                        <div className="tender-tag" style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' }}>
+                            Estado: {stateFilter}
+                            <button onClick={() => { setStateFilter(''); setMunicipioFilter(''); if(hasSearched) handleSearch(1); }} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0 2px', fontWeight: 'bold' }}>×</button>
+                        </div>
+                    )}
+
+                    {municipioFilter && (
+                        <div className="tender-tag" style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' }}>
+                            Município: {municipios.find(m => String(m.id) === String(municipioFilter))?.nome || municipioFilter}
+                            <button onClick={() => { setMunicipioFilter(''); if(hasSearched) handleSearch(1); }} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0 2px', fontWeight: 'bold' }}>×</button>
+                        </div>
+                    )}
+
+                    {searchTerm && (
+                        <div className="tender-tag" style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' }}>
+                            Busca: "{searchTerm}"
+                            <button onClick={() => { setSearchTerm(''); if(hasSearched) handleSearch(1); }} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '0 2px', fontWeight: 'bold' }}>×</button>
+                        </div>
+                    )}
+
+                    <button 
+                        onClick={() => {
+                            setFilter('ALL');
+                            setStateFilter('');
+                            setMunicipioFilter('');
+                            setNicheFilter('');
+                            setSearchTerm('');
+                            if(hasSearched) handleSearch(1);
+                        }}
+                        style={{ fontSize: '12px', background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                        Limpar todos
+                    </button>
+                </div>
+            )}
+
             {errorMsg && (
                 <div className="auth-alert auth-alert-error" style={{ marginTop: 'var(--space-4)' }}>
                     {errorMsg}
@@ -425,16 +502,43 @@ export const TenderList: React.FC = () => {
                             </div>
 
                             {/* Direita: Score e Actions */}
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-2)' }}>
-                                {/* Badge de Match */}
-                                <div className="match-badge" title="Score de compatibilidade por nicho e descrição da licitação">
-                                    <span className="match-badge-score">{calculateMatch(tender)}%</span>
-                                    <span className="match-badge-label">Match</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--space-2)' }}>
+                                    {/* Badge de Match */}
+                                    <div className="match-badge" title="Score de compatibilidade por nicho e descrição da licitação">
+                                        <span className="match-badge-score">{calculateMatch(tender)}%</span>
+                                        <span className="match-badge-label">Match</span>
+                                    </div>
+                                    
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        {(!tender.linkEdital || tender.semEdital || tender.locked) ? (
+                                            <button 
+                                                className="btn btn-primary" 
+                                                style={{ padding: '4px 12px', fontSize: 13, height: 32, background: 'var(--color-secondary)' }} 
+                                                onClick={() => {
+                                                    if (tender.externalLink) {
+                                                        window.open(tender.externalLink, '_blank', 'noopener,noreferrer');
+                                                    } else {
+                                                        handleOpenTender(tender);
+                                                    }
+                                                }}
+                                            >
+                                                Acessar Sistema de Origem
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                className="btn btn-primary" 
+                                                style={{ padding: '4px 12px', fontSize: 13, height: 32 }} 
+                                                onClick={() => window.open(tender.linkEdital!, '_blank', 'noopener,noreferrer')}
+                                            >
+                                                Baixar Edital
+                                            </button>
+                                        )}
+                                        
+                                        <button className="btn btn-ghost" style={{ padding: '4px 12px', fontSize: 13, height: 32 }} onClick={() => handleOpenTender(tender)}>
+                                            Ver Detalhes &rarr;
+                                        </button>
+                                    </div>
                                 </div>
-                                <button className="btn btn-ghost" style={{ padding: '4px 12px', fontSize: 13, height: 32 }} onClick={() => handleOpenTender(tender)}>
-                                    Ver Detalhes &rarr;
-                                </button>
-                            </div>
                         </div>
                     </div>
                 ))}
