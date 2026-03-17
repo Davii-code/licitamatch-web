@@ -67,14 +67,6 @@ export interface RegisterResponse {
     user: UserInfo;
 }
 
-export interface ForgotPasswordResponse {
-    message: string;
-}
-
-export interface ResetPasswordResponse {
-    message: string;
-}
-
 export interface ApiError {
     error: string;
     details?: Record<string, string[]>;
@@ -127,17 +119,6 @@ export const authApi = {
             { method: 'POST', body: JSON.stringify({ cnpj }) }
         ),
 
-    forgotPassword: (email: string) =>
-        apiFetch<ForgotPasswordResponse>('/api/auth/forgot-password', {
-            method: 'POST',
-            body: JSON.stringify({ email }),
-        }),
-
-    resetPassword: (token: string, newPassword: string) =>
-        apiFetch<ResetPasswordResponse>('/api/auth/reset-password', {
-            method: 'POST',
-            body: JSON.stringify({ token, newPassword }),
-        }),
 
     /** Salva o token no localStorage e retorna o usuário decodificado simplificado */
     persistSession: (token: string) => {

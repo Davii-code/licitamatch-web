@@ -10,8 +10,7 @@ A aplicação web oferece:
 - seleção de empresa ativa por CNPJ;
 - dashboard com cache local de métricas;
 - busca de licitações com filtros (nicho, estado, município, datas e modalidade);
-- tela de perfil e segurança (inclusive atualização de senha);
-- fluxo de "esqueci minha senha" integrado ao back-end.
+- tela de perfil e segurança (inclusive atualização de senha).
 
 ## Stack
 
@@ -73,10 +72,15 @@ Crie `licitamatch-web/.env` (opcional em dev, obrigatório em alguns cenários d
 ```env
 # Em desenvolvimento, pode ficar vazio para usar proxy do Vite
 VITE_API_URL=
+
+# Feature flag para busca textual por termo na tela de licitações
+VITE_FF_TENDER_FTS_SEARCH=false
 ```
 
 - Em desenvolvimento: a app usa `/api/*` via proxy.
 - Em produção: defina `VITE_API_URL=https://seu-backend.com`.
+- A busca textual por termo só aparece quando `VITE_FF_TENDER_FTS_SEARCH=true`
+  e o backend estiver com `FF_TENDER_FTS_SEARCH=true`.
 
 ## Scripts
 
@@ -145,8 +149,6 @@ Na tela `TenderList`:
 - `login(email, password)`
 - `register(email, password, name?)`
 - `selectCompany(cnpj)`
-- `forgotPassword(email)`
-- `resetPassword(token, newPassword)`
 
 ### `api.service.ts`
 
@@ -199,14 +201,8 @@ npm run build
 - valide se o back-end está ativo;
 - verifique rota `/api/localidades/estados/{uf}/municipios`.
 
-### Esqueci senha sem e-mail
-
-- o envio depende do SMTP no back-end;
-- confira variáveis `SMTP_*` no `back-end/.env`.
-
 ## Roadmap Sugerido
 
-- página dedicada de redefinição de senha no front (`/reset-password`);
 - tipagem estrita para todos os DTOs de API;
 - testes de interface para fluxos críticos (login, seleção de empresa, busca).
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { tenderApi } from '../../services/tender.service';
 import { locationApi } from '../../services/location.service';
 import { useAuth } from '../../context/AuthContext';
+import { featureFlags } from '../../config/feature-flags';
 
 type MunicipioOption = {
     id: number | string;
@@ -29,6 +30,8 @@ type TenderItem = {
     locked?: boolean;
     match?: number;
 };
+
+type TenderQueryValue = string | number | boolean;
 
 const STATES = [
     { value: '', label: 'Qualquer Estado' },
@@ -101,6 +104,7 @@ export const TenderList: React.FC = () => {
     const [stateFilter, setStateFilter] = useState('');
     const [municipioFilter, setMunicipioFilter] = useState('');
     const [nicheFilter, setNicheFilter] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const [municipios, setMunicipios] = useState<MunicipioOption[]>([]);
     const [isLoadingMunicipios, setIsLoadingMunicipios] = useState(false);
     const [dataInicial, setDataInicial] = useState('2026-01-01');
@@ -115,6 +119,8 @@ export const TenderList: React.FC = () => {
     const [errorMsg, setErrorMsg] = useState('');
     const [paywallData, setPaywallData] = useState<{ active: boolean, message?: string }>({ active: false });
     const [nicheInfo, setNicheInfo] = useState<string | null>(null);
+    const [searchInfo, setSearchInfo] = useState<string | null>(null);
+    const [isFtsFilterEnabled, setIsFtsFilterEnabled] = useState(featureFlags.tenderFtsSearch);
 
     // Carregar municípios quando estado mudar
     useEffect(() => {
@@ -155,7 +161,7 @@ export const TenderList: React.FC = () => {
         setErrorMsg('');
         setTenders([]); // clear previous
         try {
-            const params: Record<string, string | number> = {
+            const params: Record<string, TenderQueryValue> = {
                 dataInicial: dataInicial.replace(/-/g, ''),
                 dataFinal: dataFinal.replace(/-/g, ''),
                 page: targetPage,
@@ -165,6 +171,7 @@ export const TenderList: React.FC = () => {
             if (stateFilter) params.estado = stateFilter;
             if (municipioFilter) params.municipio = municipioFilter;
             if (nicheFilter) params.nicho = nicheFilter;
+            if (isFtsFilterEnabled && searchTerm.trim().length > 0) params.termo = searchTerm.trim();
 
             const res = await tenderApi.getPremiumTenders(params);
             setTenders(res.data || []);
@@ -174,6 +181,10 @@ export const TenderList: React.FC = () => {
             setHasNextPage(Boolean(res.hasNextPage));
             setPaywallData({ active: res.paywall, message: res.paywallMessage });
             setNicheInfo(res.nicheFallback ? (res.nichoInfo || null) : null);
+            setSearchInfo(res.searchInfo ?? null);
+            if (typeof res.ftsFeatureEnabled === 'boolean') {
+                setIsFtsFilterEnabled(res.ftsFeatureEnabled);
+            }
         } catch (err: unknown) {
             console.error('Erro ao buscar editais', err);
             setErrorMsg(err instanceof Error ? err.message : 'Erro ao buscar editais');
@@ -181,6 +192,7 @@ export const TenderList: React.FC = () => {
             setTotalRecords(0);
             setHasNextPage(false);
             setNicheInfo(null);
+            setSearchInfo(null);
         } finally {
             setIsLoading(false);
         }
@@ -318,7 +330,18 @@ export const TenderList: React.FC = () => {
                 <select className="filter-select" value={nicheFilter} onChange={(e) => setNicheFilter(e.target.value)}>
                     {NICHES.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
                 </select>
-                
+
+                {isFtsFilterEnabled && (
+                    <input
+                        className="filter-select"
+                        type="search"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Buscar por termo (ex: manutenção de computadores)"
+                        style={{ minWidth: 280 }}
+                    />
+                )}
+
                 <select className="filter-select" value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}>
                     {STATES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
@@ -359,6 +382,12 @@ export const TenderList: React.FC = () => {
             {nicheInfo && !errorMsg && (
                 <div className="auth-alert" style={{ marginTop: 'var(--space-4)' }}>
                     {nicheInfo}
+                </div>
+            )}
+
+            {searchInfo && !errorMsg && (
+                <div className="auth-alert" style={{ marginTop: 'var(--space-4)' }}>
+                    {searchInfo}
                 </div>
             )}
 

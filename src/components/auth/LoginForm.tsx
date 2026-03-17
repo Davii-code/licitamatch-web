@@ -78,8 +78,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegis
     const [errors, setErrors] = useState<LoginFormErrors>({});
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [isSendingRecovery, setIsSendingRecovery] = useState(false);
-    const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
 
     const handleChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,26 +116,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegis
         }
     };
 
-    const handleForgotPassword = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-        e.preventDefault();
-        if (!formData.email) {
-            setErrors((prev) => ({ ...prev, email: 'Informe seu e-mail para recuperar a senha' }));
-            return;
-        }
-
-        setIsSendingRecovery(true);
-        setRecoveryMessage(null);
-
-        try {
-            const response = await authApi.forgotPassword(formData.email);
-            setRecoveryMessage(response.message);
-        } catch (err) {
-            setRecoveryMessage(err instanceof Error ? err.message : 'Erro ao solicitar recuperação de senha.');
-        } finally {
-            setIsSendingRecovery(false);
-        }
-    };
-
     return (
         <form className="auth-form" onSubmit={handleSubmit} noValidate id="login-form">
             {/* Alerta de erro geral */}
@@ -169,17 +147,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegis
 
             {/* Senha */}
             <div className="form-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label htmlFor="login-password" className="form-label">Senha</label>
-                    <a
-                        href="#"
-                        style={{ fontSize: 'var(--text-xs)', fontWeight: 600 }}
-                        onClick={handleForgotPassword}
-                        tabIndex={-1}
-                    >
-                        {isSendingRecovery ? 'Enviando...' : 'Esqueci minha senha'}
-                    </a>
-                </div>
+                <label htmlFor="login-password" className="form-label">Senha</label>
                 <div className="form-input-wrapper">
                     <span className="form-input-icon"><IconLock /></span>
                     <input
@@ -236,11 +204,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegis
                 )}
             </button>
 
-            {recoveryMessage && (
-                <div className="auth-alert auth-alert-success" role="status" style={{ marginTop: 'var(--space-3)' }}>
-                    <span>{recoveryMessage}</span>
-                </div>
-            )}
 
             {/* Link para cadastro */}
             <p className="auth-footer-link">
