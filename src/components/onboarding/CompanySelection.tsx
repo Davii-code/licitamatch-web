@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { type CompanyBrief, authApi } from '../../services/auth.service';
+import { type CompanyBrief, authApi, ApiError } from '../../services/auth.service';
 import '../../styles/onboarding.css';
 
 interface CompanySelectionProps {
     companies: CompanyBrief[];
-    onSelect: (token: string, company: CompanyBrief) => void;
+    // Sem token: o servidor emite o cookie novo com o contexto da empresa.
+    onSelect: (company: CompanyBrief) => void;
     onNewCompany: () => void;
     onLogout: () => void;
 }
@@ -24,13 +25,18 @@ export const CompanySelection: React.FC<CompanySelectionProps> = ({
 
         try {
             const response = await authApi.selectCompany(cnpj);
-            // Salva o novo token devolvido pela API com o contexto de empresa
-            authApi.persistSession(response.accessToken);
-            const normalizedCompany: CompanyBrief = {
+
+            // Cidade e estado não voltam do select-company, mas já vieram na
+            // listagem. Partir do item original preserva esses campos, que a
+            // versão anterior zerava ao remontar o objeto do zero.
+            const original = companies.find((c) => c.cnpj === response.company.cnpj);
+
+            const empresaSelecionada: CompanyBrief = {
                 cnpj: response.company.cnpj,
                 accessLevel: response.membership.accessLevel,
                 isLegalRepresentative: response.membership.isLegalRepresentative,
                 company: {
+                    ...original?.company,
                     cnpj: response.company.cnpj,
                     legalName: response.company.legalName,
                     tradeName: response.company.tradeName,
@@ -38,13 +44,14 @@ export const CompanySelection: React.FC<CompanySelectionProps> = ({
                     size: response.company.size,
                     nichoPrincipal: response.company.nichoPrincipal,
                     nichosSecundarios: response.company.nichosSecundarios,
-                    city: null,
-                    state: null,
+                    city: original?.company.city ?? null,
+                    state: original?.company.state ?? null,
                 },
             };
-            onSelect(response.accessToken, normalizedCompany);
+
+            onSelect(empresaSelecionada);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Erro ao selecionar empresa.');
+            setError(err instanceof ApiError ? err.message : 'Erro ao selecionar empresa.');
         } finally {
             setLoadingCnpj(null);
         }

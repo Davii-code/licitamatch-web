@@ -1,5 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { companyApi } from '../../services/company.service';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+    companyApi,
+    type CompanyDetailResponse,
+    type CompanyMember,
+    type Certification,
+} from '../../services/company.service';
+import { ApiError } from '../../services/auth.service';
 import { formatCNPJ } from '../../utils/cnpj';
 
 interface CompanyProfileProps {
@@ -7,7 +13,7 @@ interface CompanyProfileProps {
 }
 
 export const CompanyProfile: React.FC<CompanyProfileProps> = ({ cnpj }) => {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<CompanyDetailResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState('');
@@ -15,32 +21,39 @@ export const CompanyProfile: React.FC<CompanyProfileProps> = ({ cnpj }) => {
     // Estados locais para tabs simples (Perfil / Membros / Atestados)
     const [activeTab, setActiveTab] = useState<'info' | 'members' | 'certifications'>('info');
 
-    const fetchData = async () => {
+    // useCallback para poder entrar nas dependências do efeito sem recriar a
+    // função a cada render, que dispararia a busca em laço.
+    const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             setError('');
-            const res = await companyApi.get(cnpj);
-            setData(res);
-        } catch (err: any) {
-            setError(err.message || 'Erro ao carregar dados da empresa');
+            setData(await companyApi.get(cnpj));
+        } catch (err) {
+            setError(
+                err instanceof ApiError ? err.message : 'Erro ao carregar dados da empresa'
+            );
         } finally {
             setLoading(false);
         }
-    };
+    }, [cnpj]);
 
     useEffect(() => {
         if (cnpj) {
-            fetchData();
+            void fetchData();
         }
-    }, [cnpj]);
+    }, [cnpj, fetchData]);
 
     const handleRefresh = async () => {
         try {
             setRefreshing(true);
             await companyApi.refresh(cnpj);
             await fetchData(); // Recarrega os dados após sincronizar
-        } catch (err: any) {
-            alert(err.message || 'Erro ao sincronizar com OpenCNPJ');
+        } catch (err) {
+            setError(
+                err instanceof ApiError
+                    ? err.message
+                    : 'Erro ao sincronizar os dados com a Receita Federal.'
+            );
         } finally {
             setRefreshing(false);
         }
@@ -59,8 +72,9 @@ export const CompanyProfile: React.FC<CompanyProfileProps> = ({ cnpj }) => {
         return <div className="auth-alert auth-alert-error fade-in">{error || 'Empresa não encontrada.'}</div>;
     }
 
-    const { company, membership = {}, members = [], certifications = [] } = data;
+    const { company, membership, members = [], certifications = [] } = data;
     const isOwner = membership.accessLevel === 'OWNER';
+    const podeGerenciar = isOwner || membership.accessLevel === 'ADMIN';
 
     return (
         <div className="fade-in profile-container">
@@ -168,7 +182,7 @@ export const CompanyProfile: React.FC<CompanyProfileProps> = ({ cnpj }) => {
                         )}
                     </div>
                     <div className="list-container">
-                        {members.map((m: any) => (
+                        {members.map((m: CompanyMember) => (
                             <div className="list-item" key={m.userId}>
                                 <div className="member-info">
                                     <span className="member-name">{m.name} {m.isLegalRepresentative && <span className="badge badge-primary" style={{ marginLeft: 8 }}>Rep. Legal</span>}</span>
@@ -211,7 +225,7 @@ export const CompanyProfile: React.FC<CompanyProfileProps> = ({ cnpj }) => {
                             </svg>
                             Atestados e Certificações
                         </h3>
-                        {['OWNER', 'ADMIN'].includes(membership.accessLevel) && (
+                        {podeGerenciar && (
                             <button className="btn btn-primary" style={{ height: 32, padding: '0 16px', fontSize: 13, width: 'auto' }}>
                                 + Novo Atestado
                             </button>
@@ -221,11 +235,22 @@ export const CompanyProfile: React.FC<CompanyProfileProps> = ({ cnpj }) => {
                         {certifications.length === 0 ? (
                             <p style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>Nenhuma certificação/atestado cadastrado.</p>
                         ) : (
-                            certifications.map((cert: any) => (
+                            certifications.map((cert: Certification) => (
                                 <div className="list-item" key={cert.id}>
                                     <div className="cert-info">
                                         <span className="cert-title">{cert.title}</span>
-                                        <span className="cert-meta">Adicionado em: {new Date(cert.createdAt).toLocaleDateString()}</span>
+                                        <span className="cert-meta">
+                                            {cert.issuedAt
+                                                ? `Emitido em ${new Date(cert.issuedAt).toLocaleDateString('pt-BR')}`
+                                                : 'Data de emissão não informada'}
+                                            {cert.expiresAt && (
+                                                <>
+                                                    {' · '}
+                                                    {cert.vencida ? 'Vencido em ' : 'Válido até '}
+                                                    {new Date(cert.expiresAt).toLocaleDateString('pt-BR')}
+                                                </>
+                                            )}
+                                        </span>
                                         <div className="cert-tags">
                                             {cert.tags.map((tag: string) => (
                                                 <span key={tag} className="cert-tag">{tag}</span>

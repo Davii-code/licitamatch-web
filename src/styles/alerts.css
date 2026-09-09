@@ -194,3 +194,106 @@
 .toggle-input:checked + .toggle-slider:before {
   transform: translateX(20px);
 }
+
+/* ════════════════════════════════════════════
+   Gestão de alertas — formulário, cartões e paywall
+════════════════════════════════════════════ */
+
+.alerts-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.alerts-hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.alerts-paywall {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.alert-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.alert-card-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--color-primary-dark);
+  margin: 0;
+}
+
+.alert-card-filters {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.alert-card-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.alert-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.alert-card-actions .btn {
+  width: auto;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* Alerta pausado continua visível, mas sem competir com os ativos. */
+.alert-card-inactive {
+  opacity: 0.6;
+}
+
+.alert-card-remove {
+  color: var(--color-danger);
+}
+
+/* Selo "PRO" nos itens de menu exclusivos do plano pago. */
+.nav-badge {
+  margin-left: auto;
+  background: linear-gradient(135deg, #FFD700 0%, #F59E0B 100%);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+@media (max-width: 720px) {
+  .alert-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .alert-card-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}

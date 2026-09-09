@@ -1,128 +1,75 @@
-import React, { useState } from 'react';
-import { AuthPage } from './components/auth/AuthPage';
-import { CompanySelection } from './components/onboarding/CompanySelection';
-import { CompanyRegistration } from './components/onboarding/CompanyRegistration';
+import React from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
+import { ErrorBoundary } from './components/layout/ErrorBoundary';
 import { DashboardOverview } from './components/dashboard/DashboardOverview';
 import { TenderList } from './components/tenders/TenderList';
-import { CompanyProfile } from './components/profile/CompanyProfile';
+import { AlertsPage } from './components/alerts/AlertsPage';
 import { EligibilityAnalysis } from './components/eligibility/EligibilityAnalysis';
 import { SettingsAccount } from './components/settings/SettingsAccount';
-import { type CompanyBrief, type UserInfo } from './services/auth.service';
-import { companyApi } from './services/company.service';
-import { useAuth } from './context/AuthContext';
+import { CompanyProfilePage } from './pages/CompanyProfilePage';
+import { LoginPage } from './pages/LoginPage';
+import { PasswordResetPage } from './pages/PasswordResetPage';
+import { CompanySelectionPage } from './pages/CompanySelectionPage';
+import { CompanyRegistrationPage } from './pages/CompanyRegistrationPage';
+import { RequireAuth, RequireCompany, RedirectIfAuthenticated } from './routes/guards';
 import './index.css';
 import './styles/dashboard.css';
 import './styles/profile.css';
 import './styles/eligibility.css';
 import './styles/settings.css';
 
-// ── Tipos de estado da aplicação ──
-type AppView = 'auth' | 'select-company' | 'register-company' | 'dashboard' | 'tenders' | 'eligibility' | 'profile' | 'settings';
+/**
+ * Mapa de rotas da aplicação.
+ *
+ * A navegação era estado em memória (`useState<AppView>`), o que deixava toda a
+ * aplicação numa única URL: não dava para compartilhar link de tela, o botão
+ * voltar saía do sistema e recarregar perdia o lugar. Cada tela agora tem
+ * endereço próprio.
+ *
+ * Guards em camadas: `RequireAuth` cobre tudo que exige login; `RequireCompany`
+ * cobre o painel, cujas telas operam sempre no contexto de um CNPJ.
+ */
+const App: React.FC = () => (
+    <ErrorBoundary>
+        <Routes>
+            {/* ── Público ── */}
+            <Route
+                path="/entrar"
+                element={
+                    <RedirectIfAuthenticated>
+                        <LoginPage />
+                    </RedirectIfAuthenticated>
+                }
+            />
+            {/* Destino do link enviado no e-mail de recuperação. */}
+            <Route path="/redefinir-senha" element={<PasswordResetPage />} />
 
-// ── App ──
-const App: React.FC = () => {
-  const [view, setView] = useState<AppView>('auth');
-  const [companies, setCompanies] = useState<CompanyBrief[]>([]);
+            {/* ── Autenticado, ainda sem empresa ativa ── */}
+            <Route element={<RequireAuth />}>
+                <Route path="/empresas" element={<CompanySelectionPage />} />
+                <Route path="/empresas/nova" element={<CompanyRegistrationPage />} />
 
-  const { token, setAuth, setCurrentCompany, logout, currentCompany } = useAuth();
+                {/* ── Painel: exige empresa ativa ── */}
+                <Route element={<RequireCompany />}>
+                    <Route path="/painel" element={<MainLayout />}>
+                        <Route index element={<DashboardOverview />} />
+                        <Route path="licitacoes" element={<TenderList />} />
+                        <Route path="alertas" element={<AlertsPage />} />
+                        <Route path="elegibilidade" element={<EligibilityAnalysis />} />
+                        <Route path="empresa" element={<CompanyProfilePage />} />
+                        <Route path="conta" element={<SettingsAccount />} />
+                    </Route>
+                </Route>
+            </Route>
 
-  const handleAuthenticated = (fetchedCompanies: CompanyBrief[], newToken: string, user: UserInfo) => {
-    // AuthContext parsea o user a partir do token de qualquer forma.
-    setAuth(newToken, user, fetchedCompanies);
-    setCompanies(fetchedCompanies);
-    setView(fetchedCompanies.length === 0 ? 'register-company' : 'select-company');
-  };
+            {/* A raiz manda para o painel; o guard redireciona quem não tem sessão. */}
+            <Route path="/" element={<Navigate to="/painel" replace />} />
 
-  const handleLogout = () => {
-    logout();
-    setView('auth');
-    setCompanies([]);
-  };
-
-  const handleCompanySelected = (_newToken: string, company: CompanyBrief) => {
-    // select-company agora já entrega CompanyBrief normalizado
-    setCurrentCompany(company);
-    setView('dashboard');
-  };
-
-  const handleCompanyRegistered = async (newCompany: { cnpj: string }) => {
-    try {
-      const response = await companyApi.list();
-      setCompanies(response.companies);
-      setView('select-company');
-    } catch (err) {
-      console.error(err);
-      const fallbackCompany: CompanyBrief = {
-        cnpj: newCompany.cnpj,
-        accessLevel: 'OWNER',
-        isLegalRepresentative: true,
-        company: {
-          cnpj: newCompany.cnpj,
-          legalName: 'Nova empresa',
-          tradeName: null,
-          status: 'ACTIVE',
-          size: null,
-          nichoPrincipal: null,
-          nichosSecundarios: [],
-          city: null,
-          state: null,
-        },
-      };
-      handleCompanySelected(token!, fallbackCompany);
-    }
-  };
-
-  // Se for uma das views autenticadas, monta o MainLayout
-  const renderAppContent = () => {
-    if (view === 'auth') {
-      return <AuthPage onAuthenticated={handleAuthenticated} />;
-    }
-
-    if (view === 'select-company') {
-      return (
-        <CompanySelection
-          companies={companies}
-          onSelect={handleCompanySelected}
-          onNewCompany={() => setView('register-company')}
-          onLogout={handleLogout}
-        />
-      );
-    }
-
-    if (view === 'register-company') {
-      return (
-        <CompanyRegistration
-          onSuccess={handleCompanyRegistered}
-          allowCancel={companies.length > 0}
-          onCancel={() => setView('select-company')}
-        />
-      );
-    }
-
-    // A partir daqui, as views rodam dentro do MainLayout (Painel Completo)
-    const activeCompanyName = currentCompany?.company?.tradeName || currentCompany?.company?.legalName || 'Sua Empresa';
-
-    return (
-      <MainLayout
-        activeView={view}
-        onChangeView={(v) => setView(v as AppView)}
-        onLogout={handleLogout}
-        companyName={activeCompanyName}
-      >
-        {view === 'dashboard' && <DashboardOverview />}
-        {view === 'tenders' && <TenderList />}
-        {view === 'eligibility' && <EligibilityAnalysis />}
-        {view === 'profile' &&
-          <CompanyProfile cnpj={currentCompany?.company?.cnpj || ''} />
-        }
-        {view === 'settings' && <SettingsAccount />}
-      </MainLayout>
-    );
-  };
-
-  return <>{renderAppContent()}</>;
-
-};
+            {/* Qualquer outro endereço volta para a raiz em vez de renderizar vazio. */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+    </ErrorBoundary>
+);
 
 export default App;

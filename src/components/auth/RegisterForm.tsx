@@ -47,8 +47,13 @@ function validateRegister(data: RegisterFormData): RegisterFormErrors {
     if (!data.email) errors.email = 'E-mail é obrigatório';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = 'E-mail inválido';
 
+    // Espelha a política do servidor (lib/validation.ts): 8 caracteres, com ao
+    // menos uma letra e um número. Divergir daqui só produziria um 400 depois
+    // de o usuário preencher o formulário inteiro.
     if (!data.password) errors.password = 'Senha é obrigatória';
-    else if (data.password.length < 6) errors.password = 'Mínimo de 6 caracteres';
+    else if (data.password.length < 8) errors.password = 'Mínimo de 8 caracteres';
+    else if (!/[A-Za-zÀ-ÿ]/.test(data.password)) errors.password = 'Inclua ao menos uma letra';
+    else if (!/[0-9]/.test(data.password)) errors.password = 'Inclua ao menos um número';
 
     if (!data.confirmPassword) errors.confirmPassword = 'Confirme sua senha';
     else if (data.password !== data.confirmPassword) errors.confirmPassword = 'As senhas não coincidem';

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { authApi, type CompanyBrief, type UserInfo } from '../../services/auth.service';
+import { authApi, ApiError, type CompanyBrief, type UserInfo } from '../../services/auth.service';
 
 // ── Tipos ──
 interface LoginFormData {
@@ -15,8 +15,12 @@ interface LoginFormErrors {
 }
 
 interface LoginFormProps {
-    onSuccess: (companies: CompanyBrief[], token: string, user: UserInfo) => void;
+    // O token não é mais devolvido ao cliente: a sessão vem em cookie HttpOnly
+    // gravado pelo servidor na própria resposta do login.
+    onSuccess: (companies: CompanyBrief[], user: UserInfo) => void;
     onSwitchToRegister: () => void;
+    /** Abre o fluxo de recuperação de senha. */
+    onForgotPassword: () => void;
 }
 
 // ── Validação ──
@@ -69,7 +73,11 @@ const IconAlert = () => (
 );
 
 // ── Componente ──
-export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({
+    onSuccess,
+    onSwitchToRegister,
+    onForgotPassword,
+}) => {
     const [formData, setFormData] = useState<LoginFormData>({
         email: '',
         password: '',
@@ -106,10 +114,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegis
 
         try {
             const response = await authApi.login(formData.email, formData.password);
-            authApi.persistSession(response.accessToken);
-            onSuccess(response.companies, response.accessToken, response.user);
+            onSuccess(response.companies, response.user);
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Erro ao fazer login';
+            const message =
+                err instanceof ApiError
+                    ? [err.message, ...err.fieldMessages].join(' ')
+                    : 'Erro ao fazer login';
             setErrors({ general: message });
         } finally {
             setIsLoading(false);
@@ -204,6 +214,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegis
                 )}
             </button>
 
+
+            {/* Recuperação de senha */}
+            <p className="auth-footer-link">
+                <a href="#" onClick={(e) => { e.preventDefault(); onForgotPassword(); }}>
+                    Esqueci minha senha
+                </a>
+            </p>
 
             {/* Link para cadastro */}
             <p className="auth-footer-link">

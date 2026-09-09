@@ -1,7 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { stripCNPJ, formatCNPJ, validateCNPJ } from '../../utils/cnpj';
-import { companyApi, type PublicCompanyPreview, type CompanyNiche } from '../../services/company.service';
+import { companyApi, type CompanyPreview, type CompanyNiche, type CompanyAddress } from '../../services/company.service';
 import '../../styles/onboarding.css';
+
+/** Situação cadastral vinda da Receita, já normalizada pela API. */
+const STATUS_LABELS: Record<string, string> = {
+    ACTIVE: 'Ativa',
+    SUSPENDED: 'Suspensa',
+    CANCELLED: 'Baixada',
+    IRREGULAR: 'Inapta',
+    UNKNOWN: 'Não informada',
+};
+
+/** Monta o endereço pulando os campos que a Receita não devolveu. */
+function formatAddress(address: CompanyAddress): string {
+    const linha = [address.street, address.number].filter(Boolean).join(', ');
+    const bairro = address.neighborhood;
+    const cidade = [address.city, address.state].filter(Boolean).join(' - ');
+
+    const partes = [linha, bairro, cidade].filter(Boolean);
+    return partes.length > 0 ? partes.join(' — ') : 'Endereço não informado';
+}
 
 const NICHE_OPTIONS: Array<{ value: CompanyNiche; label: string }> = [
     { value: 'COMPRAS', label: 'Compras e Suprimentos' },
@@ -33,7 +52,7 @@ export const CompanyRegistration: React.FC<CompanyRegistrationProps> = ({
     const [nichosSecundarios, setNichosSecundarios] = useState<CompanyNiche[]>([]);
 
     // Preview
-    const [preview, setPreview] = useState<PublicCompanyPreview | null>(null);
+    const [preview, setPreview] = useState<CompanyPreview | null>(null);
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
     const [previewError, setPreviewError] = useState<string | null>(null);
 
@@ -193,30 +212,30 @@ export const CompanyRegistration: React.FC<CompanyRegistrationProps> = ({
 
                                 <div className="preview-field" style={{ gridColumn: 'span 2' }}>
                                     <span className="preview-label">Razão Social</span>
-                                    <span className="preview-value">{preview.razao_social}</span>
+                                    <span className="preview-value">{preview.legalName}</span>
                                 </div>
 
                                 <div className="preview-field">
                                     <span className="preview-label">Status Receita</span>
-                                    <span className={`status-badge ${preview.descricao_situacao_cadastral === 'ATIVA' ? 'active' : 'suspended'}`}>
-                                        {preview.descricao_situacao_cadastral}
+                                    <span className={`status-badge ${preview.status === 'ACTIVE' ? 'active' : 'suspended'}`}>
+                                        {STATUS_LABELS[preview.status] ?? preview.status}
                                     </span>
                                 </div>
 
                                 <div className="preview-field">
                                     <span className="preview-label">Nome Fantasia</span>
-                                    <span className="preview-value">{preview.nome_fantasia || '—'}</span>
+                                    <span className="preview-value">{preview.tradeName || '—'}</span>
                                 </div>
 
                                 <div className="preview-field" style={{ gridColumn: 'span 2' }}>
                                     <span className="preview-label">Atividade Principal (CNAE)</span>
-                                    <span className="preview-value">{preview.cnae_fiscal} — {preview.cnae_fiscal_descricao}</span>
+                                    <span className="preview-value">{preview.cnaePrincipal ?? '—'} — {preview.cnaePrincipalDescricao ?? 'Atividade não informada'}</span>
                                 </div>
 
                                 <div className="preview-field" style={{ gridColumn: 'span 2' }}>
                                     <span className="preview-label">Endereço</span>
                                     <span className="preview-value">
-                                        {preview.logradouro}, {preview.numero} — {preview.bairro}, {preview.municipio} - {preview.uf}
+                                        {formatAddress(preview.address)}
                                     </span>
                                 </div>
                             </div>

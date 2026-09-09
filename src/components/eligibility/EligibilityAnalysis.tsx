@@ -1,201 +1,302 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { eligibilityApi } from '../../services/eligibility.service';
+import { useAuth } from '../../context/useAuth';
+import { eligibilityApi, type EligibilityResponse } from '../../services/eligibility.service';
+import { ApiError } from '../../services/auth.service';
 
-// Formata R$
 const formatCurrency = (value: number) =>
    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-// Converte string input "1.200.000,00" para número
-const parseCurrency = (value: string) => {
+/** Converte "1.200.000,00" (formato brasileiro) em número. */
+const parseCurrency = (value: string): number => {
    const cleanStr = value.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
-   return parseFloat(cleanStr);
+   const parsed = parseFloat(cleanStr);
+   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const RISK_LABELS: Record<string, string> = {
+   LOW: 'Baixo risco',
+   MEDIUM: 'Risco moderado',
+   HIGH: 'Alto risco',
+   CRITICAL: 'Risco crítico',
+};
+
+const IconCheck = () => (
+   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="20 6 9 17 4 12" />
+   </svg>
+);
+
+const IconAlert = () => (
+   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+   </svg>
+);
+
+/**
+ * Análise de elegibilidade para um lote.
+ *
+ * Todo número exibido aqui vem da API. A versão anterior, quando a chamada
+ * falhava — o que acontecia sempre, porque enviava o parâmetro com o nome errado —
+ * caía num resultado fixo de score 85 com listas inventadas de requisitos
+ * cumpridos (SICAF, CNDT, atestado de "Storage"). Em um produto de conformidade,
+ * exibir requisito de habilitação que ninguém verificou é pior do que não exibir
+ * nada: a decisão de disputar o certame é tomada em cima disso.
+ */
 export const EligibilityAnalysis: React.FC = () => {
    const { currentCompany } = useAuth();
-   const [loteValueRaw, setLoteValueRaw] = useState<string>('845.000,00');
+
+   const [loteValueRaw, setLoteValueRaw] = useState<string>('');
    const [isLoading, setIsLoading] = useState(false);
-   
-   // Resultados da API
-   const [result, setResult] = useState<any>(null);
+   const [error, setError] = useState<string | null>(null);
+   const [result, setResult] = useState<EligibilityResponse | null>(null);
+
+   const cnpj = currentCompany?.company?.cnpj;
 
    const handleAnalyze = async () => {
-      if (!currentCompany?.company?.cnpj) return;
+      if (!cnpj) {
+         setError('Selecione uma empresa antes de analisar.');
+         return;
+      }
+
+      const valorLote = parseCurrency(loteValueRaw);
+      if (valorLote <= 0) {
+         setError('Informe o valor estimado do lote.');
+         return;
+      }
+
       setIsLoading(true);
+      setError(null);
+
       try {
-         const loteValue = parseCurrency(loteValueRaw) || 0;
-         const data = await eligibilityApi.analyze(currentCompany.company.cnpj, loteValue);
-         setResult({
-             score: data.eligibility?.overallScore ?? 0,
-             isMeEpp: data.meEppBenefits ?? false,
-             cnaeMatch: data.cnaeMatchAnalysis?.hasDirectMatch || data.cnaeMatchAnalysis?.hasGroupMatch || false,
-             capitalExigido: data.capitalSocialAnalysis?.['10PercentValue'] ?? (loteValue * 0.10),
-             capitalEmpresa: data.company?.capitalSocial ?? 0,
-             capitalRisk: data.capitalSocialAnalysis?.riskLevel ?? 'LOW'
-         });
+         setResult(await eligibilityApi.analyze(cnpj, valorLote));
       } catch (err) {
-         console.warn("Fallback de mock de elegibilidade ativado porque API não implementada/retornou erro");
-         const loteValue = parseCurrency(loteValueRaw) || 0;
-         setResult({
-             score: 85,
-             isMeEpp: true,
-             cnaeMatch: true,
-             capitalExigido: loteValue * 0.10,
-             capitalEmpresa: (currentCompany?.company as any)?.capitalSocial ?? 0,
-             capitalRisk: (loteValue * 0.10) > ((currentCompany?.company as any)?.capitalSocial ?? 0) ? 'CRITICAL' : 'LOW'
-         });
+         setResult(null);
+         setError(
+            err instanceof ApiError
+               ? err.message
+               : 'Não foi possível calcular a elegibilidade. Tente novamente.'
+         );
       } finally {
          setIsLoading(false);
       }
    };
 
+   const score = result?.eligibility.overallScore ?? 0;
+   const scoreColor =
+      score > 70 ? 'var(--color-success)' : score > 40 ? 'var(--color-warning)' : 'var(--color-danger)';
+
+   const capital = result?.capitalSocialAnalysis;
+   const capitalOk = capital?.riskLevel === 'LOW';
+   const cnaeOk = result
+      ? result.cnaeMatchAnalysis.hasDirectMatch || result.cnaeMatchAnalysis.hasGroupMatch
+      : false;
+
    return (
       <div className="fade-in eligibility-container">
-         {/* ── 1. Input do Valor do Lote ── */}
          <div className="eligibility-header">
             <div>
                <h2 className="profile-title" style={{ fontSize: 'var(--text-xl)' }}>
-                  Análise de Edital & Elegibilidade
+                  Análise de edital e elegibilidade
                </h2>
                <p className="profile-subtitle" style={{ marginTop: 'var(--space-1)' }}>
-                  Calculadora baseada na Lei 14.133/2021 avaliando Capital Social e Documentação.
+                  Avalia capital social, situação cadastral e aderência de CNAE conforme a Lei 14.133/2021.
                </p>
             </div>
 
             <div className="eligibility-input-group">
-               <label>Qual o valor estimado deste lote?</label>
+               <label htmlFor="valor-lote">Qual o valor estimado deste lote?</label>
                <div className="currency-input">
                   <span className="currency-prefix">R$</span>
                   <input
+                     id="valor-lote"
                      type="text"
+                     inputMode="decimal"
                      value={loteValueRaw}
                      onChange={(e) => setLoteValueRaw(e.target.value)}
-                     placeholder="0,00"
+                     onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+                     placeholder="845.000,00"
                   />
-                  <button className="btn btn-primary" style={{ padding: '0 12px', height: 32, borderRadius: 6 }} onClick={handleAnalyze} disabled={isLoading}>
+                  <button
+                     className="btn btn-primary"
+                     style={{ padding: '0 12px', height: 32, borderRadius: 6 }}
+                     onClick={handleAnalyze}
+                     disabled={isLoading || !cnpj}
+                  >
                      {isLoading ? 'Calculando...' : 'Calcular'}
                   </button>
                </div>
             </div>
          </div>
 
-         {result && (
+         {error && (
+            <div className="risk-card risk-card-critical" style={{ marginTop: 'var(--space-4)' }}>
+               <div className="risk-header">
+                  <IconAlert /> Não foi possível calcular
+               </div>
+               <p className="risk-desc">{error}</p>
+            </div>
+         )}
+
+         {result && capital && (
             <>
-               {/* ── 2. Card de Score Global ── */}
-         <div className="score-card">
-            <div className="score-circle">
-               <svg width="100" height="100" style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
-                  <circle cx="50" cy="50" r="45" fill="none" stroke="#E5E7EB" strokeWidth="8" />
-                  <circle
-                     cx="50" cy="50" r="45" fill="none"
-                     stroke="var(--color-success)" strokeWidth="8"
-                     strokeDasharray="283" strokeDashoffset={283 - (283 * result.score) / 100}
-                     style={{ transition: 'stroke-dashoffset 1s ease' }}
-                  />
-               </svg>
-               <div className="score-circle-inner">
-                  <span className="score-value">{result.score}</span>
-                  <span className="score-label">Score</span>
-               </div>
-            </div>
-            <div className="score-details">
-               <h3 className="score-title">Sua empresa tem Alta Compatibilidade!</h3>
-               <p className="score-desc">
-                  Com base nas exigências legais, sua empresa cumpre o balanço patrimonial necessário e o nicho CNAE. Existem pequenos pontos de atenção.
-               </p>
-               <div className="progress-container">
-                  <div className="progress-bar" style={{ width: `${result.score}%`, background: result.score > 70 ? 'var(--color-success)' : result.score > 40 ? 'var(--color-warning)' : 'var(--color-danger)' }}></div>
-               </div>
-            </div>
-         </div>
+               {/* ── Score global ── */}
+               <div className="score-card">
+                  <div className="score-circle">
+                     <svg width="100" height="100" style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#E5E7EB" strokeWidth="8" />
+                        <circle
+                           cx="50"
+                           cy="50"
+                           r="45"
+                           fill="none"
+                           stroke={scoreColor}
+                           strokeWidth="8"
+                           strokeDasharray="283"
+                           strokeDashoffset={283 - (283 * score) / 100}
+                           style={{ transition: 'stroke-dashoffset 1s ease' }}
+                        />
+                     </svg>
+                     <div className="score-circle-inner">
+                        <span className="score-value">{score}</span>
+                        <span className="score-label">Score</span>
+                     </div>
+                  </div>
 
-         <div className="risk-grid">
-            {/* Risco CNAE */}
-            <div className={`risk-card ${result.cnaeMatch ? 'risk-card-low' : 'risk-card-critical'}`}>
-               <div className="risk-header">
-                  {result.cnaeMatch ? (
-                     <><svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" /></svg> Baixo Risco</>
-                  ) : (
-                     <><svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" /></svg> Risco Crítico</>
+                  <div className="score-details">
+                     <h3 className="score-title">
+                        {result.eligibility.canBid
+                           ? score > 70
+                              ? 'Boa aderência ao lote'
+                              : 'Aderência com ressalvas'
+                           : 'Empresa impedida de participar'}
+                     </h3>
+                     <p className="score-desc">
+                        {result.eligibility.warnings.length > 0
+                           ? result.eligibility.warnings[0]
+                           : 'Nenhum impedimento identificado nos dados cadastrais analisados.'}
+                     </p>
+                     <div className="progress-container">
+                        <div className="progress-bar" style={{ width: `${score}%`, background: scoreColor }} />
+                     </div>
+                  </div>
+               </div>
+
+               <div className="risk-grid">
+                  {/* Aderência de CNAE */}
+                  <div className={`risk-card ${cnaeOk ? 'risk-card-low' : 'risk-card-critical'}`}>
+                     <div className="risk-header">
+                        {cnaeOk ? <IconCheck /> : <IconAlert />}{' '}
+                        {cnaeOk ? 'Baixo risco' : 'Atenção'}
+                     </div>
+                     <h4 className="risk-title">Atividade econômica</h4>
+                     <p className="risk-desc">
+                        {result.cnaeMatchAnalysis.hasDirectMatch
+                           ? 'A empresa possui CNAE idêntico ao exigido pelo objeto do edital.'
+                           : result.cnaeMatchAnalysis.hasGroupMatch
+                             ? 'A empresa possui CNAE do mesmo grupo do exigido. Confira se o edital aceita atividade correlata.'
+                             : 'Nenhum CNAE do edital foi informado ou nenhum casou com os da empresa. Informe os CNAEs do objeto para esta análise.'}
+                     </p>
+                  </div>
+
+                  {/* Capital social — Art. 69, §2º */}
+                  <div className={`risk-card ${capitalOk ? 'risk-card-low' : 'risk-card-critical'}`}>
+                     <div className="risk-header">
+                        {capitalOk ? <IconCheck /> : <IconAlert />} {RISK_LABELS[capital.riskLevel]}
+                     </div>
+                     <h4 className="risk-title">Qualificação econômico-financeira</h4>
+                     <p className="risk-desc">
+                        O edital pode exigir capital social de até {formatCurrency(capital.requiredCapital)} (10% do
+                        lote). A empresa possui{' '}
+                        {result.company.capitalSocial !== null
+                           ? formatCurrency(result.company.capitalSocial)
+                           : 'capital social não informado na Receita'}
+                        .
+                     </p>
+                     <p className="risk-desc" style={{ marginTop: 'var(--space-2)', opacity: 0.8 }}>
+                        {capital.legalReference}
+                     </p>
+                  </div>
+
+                  {/* Tratamento diferenciado ME/EPP */}
+                  {result.meEppBenefits.eligible && (
+                     <div className="risk-card risk-card-low">
+                        <div className="risk-header" style={{ color: 'var(--color-primary-dark)' }}>
+                           <IconCheck /> Tratamento diferenciado
+                        </div>
+                        <h4 className="risk-title">ME / EPP — LC 123/2006</h4>
+                        <p className="risk-desc">{result.meEppBenefits.message}</p>
+                     </div>
                   )}
                </div>
-               <h4 className="risk-title">Atividade Econômica</h4>
-               <p className="risk-desc">Sua empresa possui o <b>CNAE Primário</b> ou Secundário correspondente à exigência do objeto do edital.</p>
-            </div>
 
-            {/* Risco Capital Social (Art. 69 §2º) */}
-            <div className={`risk-card ${result.capitalRisk === 'LOW' ? 'risk-card-low' : 'risk-card-critical'}`}>
-               <div className="risk-header">
-                  {result.capitalRisk === 'LOW' ? (
-                     <><svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" /></svg> Baixo Risco</>
-                  ) : (
-                     <><svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg> Alto Risco</>
-                  )}
+               {/* ── Pontos verificados e ressalvas ── */}
+               <div className="req-grid">
+                  <div className="req-column req-col-green">
+                     <div className="req-col-header">
+                        <IconCheck /> Verificado nos dados cadastrais
+                     </div>
+                     <div className="req-list">
+                        <div className="req-item">
+                           <IconCheck />
+                           <span>
+                              Situação cadastral na Receita Federal: <b>{result.company.status}</b>.
+                           </span>
+                        </div>
+                        <div className="req-item">
+                           <IconCheck />
+                           <span>
+                              Porte declarado: <b>{result.company.size ?? 'não informado'}</b>.
+                           </span>
+                        </div>
+                        <div className="req-item">
+                           <IconCheck />
+                           <span>{capital.message}</span>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="req-column req-col-red">
+                     <div className="req-col-header">
+                        <IconAlert /> Ressalvas ({result.eligibility.warnings.length})
+                     </div>
+                     <div className="req-list">
+                        {result.eligibility.warnings.length === 0 ? (
+                           <div className="req-item">
+                              <IconCheck />
+                              <span>Nenhuma ressalva nos dados analisados.</span>
+                           </div>
+                        ) : (
+                           result.eligibility.warnings.map((warning) => (
+                              <div className="req-item" key={warning}>
+                                 <IconAlert />
+                                 <span>{warning}</span>
+                              </div>
+                           ))
+                        )}
+
+                        {result.dataFreshness.requiresRefresh && (
+                           <div className="req-item">
+                              <IconAlert />
+                              <span>
+                                 Dados cadastrais com mais de 30 dias. Atualize a empresa no perfil antes de usar
+                                 esta análise para habilitação.
+                              </span>
+                           </div>
+                        )}
+                     </div>
+                  </div>
                </div>
-               <h4 className="risk-title">Balanço Patrimonial</h4>
-               <p className="risk-desc">
-                  A Lei exige o correspondente a 10% ({formatCurrency(result.capitalExigido)}).
-                  Sua empresa atende a margem possuindo {formatCurrency(result.capitalEmpresa)}.
+
+               <p
+                  className="profile-subtitle"
+                  style={{ marginTop: 'var(--space-4)', fontSize: 'var(--text-xs)' }}
+               >
+                  Esta análise cobre apenas os dados cadastrais disponíveis (Receita Federal e nichos configurados).
+                  Regularidade fiscal, trabalhista e atestados de capacidade técnica exigidos pelo edital precisam ser
+                  conferidos no instrumento convocatório.
                </p>
-            </div>
-
-            {/* Badge ME/EPP (Art. 4º) */}
-            {result.isMeEpp && (
-               <div className="risk-card risk-card-low">
-                  <div className="risk-header" style={{ color: 'var(--color-primary-dark)' }}>
-                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> Benefício Fictício
-                  </div>
-                  <h4 className="risk-title">Lei Complementar 123</h4>
-                  <p className="risk-desc">
-                     Sua empresa detém a tag <b>ME/EPP</b>. Você possui o direito preferencial ao <i>desempate ficto</i> em até 5% sobre a melhor oferta.
-                  </p>
-               </div>
-            )}
-         </div>
-
-         {/* ── 4. Requisitos Detalhados (Grid Verde/Vermelho) ── */}
-         <div className="req-grid">
-            {/* Itens Atendidos */}
-            <div className="req-column req-col-green">
-               <div className="req-col-header">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                  Requisitos Cumpridos (8)
-               </div>
-               <div className="req-list">
-                  <div className="req-item">
-                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                     <span>Regularidade Fiscal Federal da Receita ativa na base de dados.</span>
-                  </div>
-                  <div className="req-item">
-                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                     <span>Capital social compatível com Art. 69 §2º (Lei 14.133).</span>
-                  </div>
-                  <div className="req-item">
-                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                     <span>Empresa cadastrada há mais de 2 anos no SICAF.</span>
-                  </div>
-                  <div className="req-item">
-                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                     <span>Possui atestado de capacidade técnica atrelado ao objeto ("Storage").</span>
-                  </div>
-               </div>
-            </div>
-
-            {/* Itens PENDENTES (Não Atendidos) */}
-            <div className="req-column req-col-red">
-               <div className="req-col-header">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                  Pendências Críticas (1)
-               </div>
-               <div className="req-list">
-                  <div className="req-item">
-                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                     <span><b>Regularidade Trabalhista (CNDT)</b> encontra-se expirada no banco de dados. Atualize o documento na aba de Perfil para que sua empresa não seja inabilitada caso vença a etapa competitiva.</span>
-                  </div>
-               </div>
-            </div>
-         </div>
             </>
          )}
       </div>

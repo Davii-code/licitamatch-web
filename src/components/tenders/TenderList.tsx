@@ -1,8 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { tenderApi } from '../../services/tender.service';
 import { locationApi } from '../../services/location.service';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { featureFlags } from '../../config/feature-flags';
+
+/** Data de hoje no formato aceito pelo <input type="date">. */
+function isoToday(): string {
+    return new Date().toISOString().slice(0, 10);
+}
+
+/** Data de N dias atrás, no mesmo formato. */
+function isoDaysAgo(days: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+    return date.toISOString().slice(0, 10);
+}
 
 type MunicipioOption = {
     id: number | string;
@@ -119,8 +131,10 @@ export const TenderList: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [municipios, setMunicipios] = useState<MunicipioOption[]>([]);
     const [isLoadingMunicipios, setIsLoadingMunicipios] = useState(false);
-    const [dataInicial, setDataInicial] = useState('2026-01-01');
-    const [dataFinal, setDataFinal] = useState('2026-12-31');
+    // Padrão: últimos 90 dias até hoje. Antes as datas eram fixas em 2026,
+    // então a tela nascia com um período errado em qualquer outro ano.
+    const [dataInicial, setDataInicial] = useState(isoDaysAgo(90));
+    const [dataFinal, setDataFinal] = useState(isoToday());
     const [tenders, setTenders] = useState<TenderItem[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
@@ -130,17 +144,20 @@ export const TenderList: React.FC = () => {
     const [hasSearched, setHasSearched] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const [paywallData, setPaywallData] = useState<{ active: boolean, message?: string }>({ active: false });
-    const [nicheInfo, setNicheInfo] = useState<string | null>(null);
     const [searchInfo, setSearchInfo] = useState<string | null>(null);
     const [isFtsFilterEnabled, setIsFtsFilterEnabled] = useState(featureFlags.tenderFtsSearch);
 
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-    // Efeito para busca automática via debounce
+    // Busca automática ao parar de digitar. A lista de dependências fica só com
+    // o termo debounced de propósito: handleSearch é recriada a cada render e
+    // incluí-la dispararia a busca em laço; hasSearched e isFtsFilterEnabled são
+    // condições de guarda, não gatilhos.
     useEffect(() => {
         if (hasSearched && isFtsFilterEnabled) {
             handleSearch(1);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedSearchTerm]);
 
     // Carregar municípios quando estado mudar
@@ -156,13 +173,7 @@ export const TenderList: React.FC = () => {
     const loadMunicipios = async (uf: string) => {
         try {
             setIsLoadingMunicipios(true);
-            const response = await locationApi.getMunicipios(uf);
-            const data = Array.isArray(response)
-                ? response
-                : (response && typeof response === 'object' && Array.isArray((response as { data?: unknown[] }).data)
-                    ? (response as { data: unknown[] }).data
-                    : []);
-            setMunicipios(data as MunicipioOption[]);
+            setMunicipios(await locationApi.getMunicipios(uf));
         } catch (err) {
             console.error('Erro ao carregar municípios', err);
             setMunicipios([]);
@@ -171,10 +182,6 @@ export const TenderList: React.FC = () => {
         }
     };
 
-    // Initial fetch
-    // useEffect(() => {
-    //     handleSearch();
-    // }, []);
 
     const handleSearch = async (targetPage = 1) => {
         setIsLoading(true);
@@ -194,14 +201,13 @@ export const TenderList: React.FC = () => {
             if (nicheFilter) params.nicho = nicheFilter;
             if (isFtsFilterEnabled && searchTerm.trim().length > 0) params.termo = searchTerm.trim();
 
-            const res = await tenderApi.getPremiumTenders(params);
+            const res = await tenderApi.getTenders(params);
             setTenders(res.data || []);
             setCurrentPage(res.page || targetPage);
             setTotalPages(res.totalPages || 0);
             setTotalRecords(res.totalRecords || 0);
             setHasNextPage(Boolean(res.hasNextPage));
             setPaywallData({ active: res.paywall, message: res.paywallMessage });
-            setNicheInfo(res.nicheFallback ? (res.nichoInfo || null) : null);
             setSearchInfo(res.searchInfo ?? null);
             if (typeof res.ftsFeatureEnabled === 'boolean') {
                 setIsFtsFilterEnabled(res.ftsFeatureEnabled);
@@ -212,7 +218,6 @@ export const TenderList: React.FC = () => {
             setTotalPages(0);
             setTotalRecords(0);
             setHasNextPage(false);
-            setNicheInfo(null);
             setSearchInfo(null);
         } finally {
             setIsLoading(false);
@@ -453,12 +458,6 @@ export const TenderList: React.FC = () => {
             {errorMsg && (
                 <div className="auth-alert auth-alert-error" style={{ marginTop: 'var(--space-4)' }}>
                     {errorMsg}
-                </div>
-            )}
-
-            {nicheInfo && !errorMsg && (
-                <div className="auth-alert" style={{ marginTop: 'var(--space-4)' }}>
-                    {nicheInfo}
                 </div>
             )}
 

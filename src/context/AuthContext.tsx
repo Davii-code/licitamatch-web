@@ -1,69 +1,113 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authApi, type UserInfo, type CompanyBrief } from '../services/auth.service';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import {
+    authApi,
+    setSessionExpiredHandler,
+    type UserInfo,
+    type CompanyBrief,
+} from '../services/auth.service';
+import { AuthContext } from './auth-context';
 
-interface AuthContextType {
+interface SessionState {
     user: UserInfo | null;
+    companies: CompanyBrief[];
     currentCompany: CompanyBrief | null;
-    token: string | null;
-    isAuthenticated: boolean;
-    setAuth: (token: string, user: UserInfo, companies: CompanyBrief[]) => void;
-    setCurrentCompany: (company: CompanyBrief) => void;
-    logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const SESSAO_VAZIA: SessionState = { user: null, companies: [], currentCompany: null };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<UserInfo | null>(null);
-    const [currentCompany, setCurrentCompany] = useState<CompanyBrief | null>(null);
-    const [token, setToken] = useState<string | null>(authApi.getStoredToken());
+    const [session, setSession] = useState<SessionState>(SESSAO_VAZIA);
+    const [isRestoring, setIsRestoring] = useState(true);
+
+    // Evita atualizar estado depois que o provider foi desmontado, o que
+    // aconteceria se a resposta de /api/users/me chegasse após a navegação.
+    const montado = useRef(true);
+
+    const clearLocalSession = useCallback(() => {
+        if (montado.current) setSession(SESSAO_VAZIA);
+    }, []);
+
+    /**
+     * Busca a sessão no servidor.
+     *
+     * Com o token em cookie `HttpOnly`, o JavaScript não consegue lê-lo — e é
+     * exatamente esse o ponto: um XSS não tem como exfiltrar a credencial. Em
+     * troca, quem está logado só é descoberto perguntando ao servidor.
+     */
+    const carregarSessao = useCallback(async () => {
+        try {
+            const dados = await authApi.getSession();
+            if (!montado.current) return;
+
+            setSession({
+                user: dados.user,
+                companies: dados.companies,
+                currentCompany:
+                    dados.companies.find((c) => c.cnpj === dados.empresaAtiva) ?? null,
+            });
+        } catch {
+            // 401 sem cookie válido é o caso normal de visitante não autenticado.
+            clearLocalSession();
+        }
+    }, [clearLocalSession]);
 
     useEffect(() => {
-        if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                // Try to recover user from payload if available, or fetch it.
-                // Assuming payload contains role, email, etc.
-                setUser({
-                    id: payload.id || '',
-                    email: payload.email || '',
-                    name: payload.name || '',
-                    role: payload.role || 'GUEST',
-                });
-            } catch (err) {
-                console.error('Invalid token');
-                logout();
-            }
-        }
-    }, [token]);
+        montado.current = true;
 
-    const setAuth = (newToken: string, newUser: UserInfo, companies: CompanyBrief[]) => {
-        authApi.persistSession(newToken);
-        setToken(newToken);
-        setUser(newUser);
-        if (companies && companies.length > 0) {
-            setCurrentCompany(companies[0]);
-        }
-    };
+        // A verificação da sessão é uma chamada de rede: todo setState acontece
+        // depois do await, nunca no corpo síncrono do efeito.
+        void (async () => {
+            await carregarSessao();
+            if (montado.current) setIsRestoring(false);
+        })();
 
-    const logout = () => {
-        authApi.logout();
-        setToken(null);
-        setUser(null);
-        setCurrentCompany(null);
-    };
+        return () => {
+            montado.current = false;
+        };
+    }, [carregarSessao]);
 
-    return (
-        <AuthContext.Provider value={{ user, currentCompany, token, isAuthenticated: !!token, setAuth, setCurrentCompany, logout }}>
-            {children}
-        </AuthContext.Provider>
+    // A camada de API avisa quando a renovação do token foi recusada em definitivo.
+    useEffect(() => {
+        setSessionExpiredHandler(clearLocalSession);
+        return () => setSessionExpiredHandler(null);
+    }, [clearLocalSession]);
+
+    const setAuth = useCallback((user: UserInfo, companies: CompanyBrief[]) => {
+        // Nenhuma empresa é marcada como ativa aqui, nem quando existe só uma.
+        // O contexto empresarial vive no token emitido por select-company; marcar
+        // localmente deixaria cliente e servidor discordando sobre qual empresa
+        // está ativa. Quem resolve isso é a tela de seleção, que chama a API.
+        setSession({ user, companies, currentCompany: null });
+    }, []);
+
+    const setCurrentCompany = useCallback((company: CompanyBrief | null) => {
+        setSession((atual) => ({ ...atual, currentCompany: company }));
+    }, []);
+
+    const logout = useCallback(
+        async (todosDispositivos = false) => {
+            // Revoga o refresh token no servidor; sem isso o cookie continuaria
+            // válido por 7 dias mesmo depois de o usuário sair.
+            await authApi.logout(todosDispositivos);
+            clearLocalSession();
+        },
+        [clearLocalSession]
     );
-};
 
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
+    const value = useMemo(
+        () => ({
+            user: session.user,
+            companies: session.companies,
+            currentCompany: session.currentCompany,
+            isAuthenticated: Boolean(session.user),
+            isRestoring,
+            setAuth,
+            setCurrentCompany,
+            reloadSession: carregarSessao,
+            logout,
+        }),
+        [session, isRestoring, setAuth, setCurrentCompany, carregarSessao, logout]
+    );
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

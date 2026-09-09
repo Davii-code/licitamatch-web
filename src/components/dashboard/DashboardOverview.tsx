@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { dashboardApi } from '../../services/api.service';
 
 type DashboardMetricsResult = Awaited<ReturnType<typeof dashboardApi.getMetrics>>;
@@ -181,6 +181,22 @@ export const DashboardOverview: React.FC = () => {
                         </svg>
                     }
                 />
+                {metrics.isEppMe && (
+                    /* LC 123/2006, Art. 48, I: contratações de até R$ 80.000 são
+                       exclusivas de ME/EPP — número contável a partir do valor
+                       estimado, ao contrário do empate ficto que este card
+                       mostrava antes. */
+                    <StatCard
+                        label="Exclusivas ME/EPP"
+                        value={metrics.licitacoesExclusivasMeEpp}
+                        color="var(--color-primary-dark)"
+                        icon={
+                            <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        }
+                    />
+                )}
                 <StatCard
                     label="Melhor Nicho"
                     value={metrics.melhorNicho}
@@ -201,9 +217,29 @@ export const DashboardOverview: React.FC = () => {
                 <p className="dashboard-summary-text">
                     {metrics.resumoInteligente}
                     <br /><br />
-                    Sua empresa {metrics.isEppMe ? 'está qualificada como EPP/ME, garantindo o' : 'não possui qualificação EPP/ME; para ME/EPPs existe o'} beneficio do empate ficto em {metrics.empateFictoCount} desses editais.
+                    {metrics.isEppMe ? (
+                        <>
+                            Sua empresa está enquadrada como ME/EPP, com direito ao tratamento diferenciado da
+                            LC 123/2006 — incluindo o empate ficto, que se aplica na sessão de disputa conforme
+                            as propostas apresentadas.
+                        </>
+                    ) : (
+                        <>
+                            Sua empresa não está enquadrada como ME/EPP e, portanto, não conta com o tratamento
+                            diferenciado da LC 123/2006 nas disputas.
+                        </>
+                    )}
                     <br />
                     Localidade validada: <b>{metrics.localidade}</b>.
+                    {metrics.ultimaSincronizacao && (
+                        <>
+                            <br />
+                            <span className="dashboard-summary-meta">
+                                Índice de licitações sincronizado em{' '}
+                                {new Date(metrics.ultimaSincronizacao).toLocaleString('pt-BR')}.
+                            </span>
+                        </>
+                    )}
                 </p>
             </div>
 
